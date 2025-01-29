@@ -104,7 +104,7 @@ class ArraySpec(object):
             num = int(name[len(prefix):])
         except ValueError:
             return None
-        if not isinstance(node.slice.value, ast.Name):
+        if not isinstance(node.slice, ast.Name):
             return None
-        gtype = node.slice.value.id
+        gtype = node.slice.id
         return cls(gtype, num)
