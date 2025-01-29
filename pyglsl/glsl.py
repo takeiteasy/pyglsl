@@ -1,5 +1,6 @@
 from .interface import ShaderInterface, UniformBlock, AttributeBlock, FragmentShaderOutputBlock
 from .types import GlslType, GlslArray
+from .shaderdef import ShaderDef
 
 mat2 = GlslType
 mat3 = GlslType
@@ -36,3 +37,4 @@ def exp2(*args, **kwargs):
 
 def mod(*args, **kwargs):
     pass
+

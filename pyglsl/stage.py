@@ -1,5 +1,5 @@
 import ast
-from typing import Union, Sequence, List, Callable, Any, get_type_hints
+from typing import Optional, Union, Sequence, List, Callable, Any, get_type_hints
 from .parse import parse, GlslVisitor
 
 class NoDeclAssign(ast.Assign):
@@ -72,19 +72,26 @@ class _Renamer(ast.NodeTransformer):
 
         return node
 
-
 def rename_ast_nodes(root_node, names):
     return _Renamer(names).visit(root_node)
 
 class Stage:
-    def __init__(self, func: Callable[..., Any]):
+    def __init__(self,
+                 func: Callable[..., Any],
+                 version: Optional[Union[str, int]] = "330 core",
+                 library: Optional[List[Callable[..., Any]]] = []):
+        self.library = library
+        self.version = version
         self.root = parse(func)
         self.params = get_type_hints(func)
         self.params.pop("return", None)
         self.return_type = get_type_hints(func).get('return')
 
-    def translate(self, version: Union[str, int], library: List[Callable[..., Any]]):
-        lines = [f"#version {version}\n"]
+    def add_function(self, func: Union[Callable[..., Any], List[Callable[..., Any]]]):
+        self.library = list(set(self.library + (func if isinstance(func, list) else [func])))
+
+    def compile(self):
+        lines = [f"#version {self.version}\n"]
         visitor = GlslVisitor()
 
         for name, ptype in sorted(self.params.items()):
@@ -98,7 +105,7 @@ class Stage:
 
         # TODO(nicholasbishop): for now we don't attempt to check if
         # the function is actually used, just define them all
-        for f in library:
+        for f in self.library:
             lines.extend(GlslVisitor().visit(parse(f)).lines)
 
         node = self.root.body[0]
@@ -115,4 +122,4 @@ class Stage:
         if self.return_type is not None:
             lines += self.return_type.declare_output_block()
 
-        return lines + visitor.visit(self.root).lines
+        return '\n'.join(lines + visitor.visit(self.root).lines)

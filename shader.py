@@ -70,3 +70,8 @@ def frag_shader(vs_out: VsOut) -> FsOut:
         color[0] = pow(mod(vs_out.color[0], rep) * fac, 4)
 
     return FsOut(fs_color=color)
+
+export = ShaderDef(vert_shader, frag_shader,
+                   vertex_functions=[perspective_projection,
+                                     triangle_2d_altitudes,
+                                     viewport_to_screen_space])

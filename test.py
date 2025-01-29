@@ -1,17 +1,10 @@
-from pyglsl import Compiler
-from shader import (vert_shader, frag_shader,
-                    triangle_2d_altitudes,
-                    viewport_to_screen_space,
-                    perspective_projection)
+from shader import export as test_shader_def
 from tester import compile_shader
 
-test = Compiler(vert_shader, frag_shader, library=[viewport_to_screen_space,
-                                                   triangle_2d_altitudes,
-                                                   perspective_projection])
-v, f, _ = test.compile()
+vs, fs = test_shader_def.compile()
 print("--- vertex source ---")
-print(v)
+print(vs)
 print("--- fragment source ---")
-print(f)
+print(fs)
 print("--- compiling shaders ---")
-print(f"{"SUCCESS" if compile_shader(v, f) else "NOOOOO"}")
+print(f"{"SUCCESS" if compile_shader(vs, fs) else "NOOOOO"}")
