@@ -1,5 +1,5 @@
 import ast
-import inspect
+from inspect import getsource
 from .types import ArraySpec
 
 class GlslCode(object):
@@ -239,4 +239,4 @@ def dedent(lines):
                 yield line[strip_len:]
 
 def parse(func):
-    return ast.parse('\n'.join(dedent(inspect.getsource(func).splitlines())))
+    return ast.parse('\n'.join(dedent(getsource(func).splitlines())))
