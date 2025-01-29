@@ -20,10 +20,12 @@ def compile_shader(vertex: str, fragment: str) -> bool:
             error_log = glGetShaderInfoLog(shader).decode('utf-8')
             print(f"{name} shader compilation failed:\n{error_log}")
             glDeleteShader(shader)  # Cleanup if compilation fails
-            exit()  # Or handle the error gracefully
+            return False
+        return True
 
-    make_shader(vertex_id, vertex, "Vertex")
-    make_shader(fragment_id, fragment, "Fragment")
+    if (not make_shader(vertex_id, vertex, "Vertex") or
+        not make_shader(fragment_id, fragment, "Fragment")):
+        return False
 
     program = glCreateProgram()
     glAttachShader(program, vertex_id)
