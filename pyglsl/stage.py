@@ -52,6 +52,30 @@ class _RewriteReturn(ast.NodeTransformer):
         else:
             return node
 
+class _Renamer(ast.NodeTransformer):
+    # pylint: disable=invalid-name
+    def __init__(self, names):
+        self.names = names
+
+    def visit_Name(self, node):
+        new_name = self.names.get(node.id)
+        if new_name is not None:
+            node.id = new_name
+        return node
+
+    def visit_Attribute(self, node):
+        node.value = self.visit(node.value)
+
+        new_name = self.names.get(node.attr)
+        if new_name is not None:
+            node.attr = new_name
+
+        return node
+
+
+def rename_ast_nodes(root_node, names):
+    return _Renamer(names).visit(root_node)
+
 class Stage:
     def __init__(self, func: Callable[..., Any]):
         self.root = parse(func)
@@ -60,7 +84,7 @@ class Stage:
         self.return_type = get_type_hints(func).get('return')
 
     def translate(self, version: Union[str, int], library: List[Callable[..., Any]]):
-        lines = [f"#version {version}"]
+        lines = [f"#version {version}\n"]
         visitor = GlslVisitor()
 
         for name, ptype in sorted(self.params.items()):
@@ -68,9 +92,9 @@ class Stage:
             is_array = None
             if origin is not None and origin == Sequence:
                 ptype = ptype.__parameters__[0]
-                array = True
+                is_array = True
             lines += ptype.declare_input_block(instance_name=name,
-                                                    array=is_array)
+                                               array=is_array)
 
         # TODO(nicholasbishop): for now we don't attempt to check if
         # the function is actually used, just define them all
@@ -86,5 +110,9 @@ class Stage:
 
         node = _RewriteReturn(self.return_type).visit(node)
         ast.fix_missing_locations(node)
+        node = _Renamer({'gl_position': 'gl_Position'}).visit(node)
+
+        if self.return_type is not None:
+            lines += self.return_type.declare_output_block()
 
         return lines + visitor.visit(self.root).lines

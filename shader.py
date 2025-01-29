@@ -39,15 +39,10 @@ def triangle_2d_altitudes(triangle: Array3[vec2]) -> vec3:
                 area / length(ed1),
                 area / length(ed2))
 
-
 def vert_shader(view: View, attr: VertAttrs) -> VsOut:
-    return VsOut(gl_position=perspective_projection(view.projection,
-                                                    view.camera,
-                                                    view.model,
-                                                    attr.vert_loc),
+    return VsOut(gl_position=perspective_projection(view.projection, view.camera, view.model, attr.vert_loc),
                  normal=attr.vert_nor,
                  color=attr.vert_col)
-
 
 def frag_shader(vs_out: VsOut) -> FsOut:
     color = vec4((vs_out.normal.x + 1.0) * 0.5,
@@ -58,7 +53,7 @@ def frag_shader(vs_out: VsOut) -> FsOut:
     # Adapted from
     # http://strattonbrazil.blogspot.com/2011/09/single-pass-wireframe-rendering_10.html
     nearest = float(min(min(vs_out.altitudes[0], vs_out.altitudes[1]),
-                        vs_out.altitudes[2]))
+                            vs_out.altitudes[2]))
     edge_intensity = float(1.0 - exp2(-1.0 * nearest * nearest))
 
     color *= edge_intensity

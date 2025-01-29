@@ -37,16 +37,6 @@ class GlslType(SupportsAbs, SupportsInt, SupportsFloat):
     def __float__(self):
         pass
 
-mat2 = GlslType
-mat3 = GlslType
-mat4 = GlslType
-vec2 = GlslType
-vec3 = GlslType
-vec4 = GlslType
-
-class void(object):
-    pass
-
 GlslArrayElem = TypeVar('GlslArrayElem')
 class GlslArray(Generic[GlslArrayElem]):
     def __init__(self, gtype):
@@ -57,23 +47,6 @@ class GlslArray(Generic[GlslArrayElem]):
 
     def __setitem__(self, index, val):
         return GlslType(self, index, val)
-
-Array1 = GlslArray
-Array2 = GlslArray
-Array3 = GlslArray
-Array4 = GlslArray
-Array5 = GlslArray
-Array6 = GlslArray
-Array7 = GlslArray
-Array8 = GlslArray
-Array9 = GlslArray
-Array10 = GlslArray
-Array11 = GlslArray
-Array12 = GlslArray
-Array13 = GlslArray
-Array14 = GlslArray
-Array15 = GlslArray
-Array16 = GlslArray
 
 @attr.s
 class ArraySpec(object):

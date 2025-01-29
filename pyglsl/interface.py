@@ -1,6 +1,5 @@
 import ast
 import attr
-from .types import vec4
 from .parse import parse
 
 def _gdecl(*parts):
@@ -166,8 +165,3 @@ class FragmentShaderOutputBlock(ShaderInterface):
             # incrementing location
             yield member.declare_output(location)
             location += 1
-
-
-# TODO, builtin
-class GlGsIn(ShaderInterface):
-    gl_position = vec4()
