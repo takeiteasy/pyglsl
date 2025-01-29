@@ -169,7 +169,7 @@ class GlslVisitor(ast.NodeVisitor):
         ))
 
     def visit_Subscript(self, node):
-        return GlslCode('{}{}'.format(self.visit(node.value).one(),
+        return GlslCode('{}[{}]'.format(self.visit(node.value).one(),
                                       self.visit(node.slice).one()))
 
     def visit_Index(self, node):
