@@ -1,7 +1,8 @@
 import ast
-from shaderdef.glsl_types import ArraySpec
+from inspect import getsource
+from .types import ArraySpec
 
-class Code(object):
+class GlslCode(object):
     def __init__(self, initial_line=None):
         self.lines = []
         if initial_line is not None:
@@ -22,7 +23,6 @@ class Code(object):
         if len(self.lines) != 1:
             raise ValueError('expected exactly one line', self)
         return self.lines[0]
-
 
 def op_symbol(op_node):
     """Get the GLSL symbol for a Python operator."""
@@ -52,9 +52,7 @@ def op_symbol(op_node):
         ops[ast.MatMult] = '*'
     return ops[op_node.__class__]
 
-
-class AstToGlsl(ast.NodeVisitor):
-    # pylint: disable=invalid-name,too-many-public-methods
+class GlslVisitor(ast.NodeVisitor):
     def visit_Module(self, node):
         if len(node.body) != 1:
             raise NotImplementedError()
@@ -71,7 +69,7 @@ class AstToGlsl(ast.NodeVisitor):
         if len(params) != 0 and params[0].arg == 'self':
             params = params[1:]
         params = (self.visit(param).one() for param in params)
-        code = Code()
+        code = GlslCode()
         code('{} {}({}) {{'.format(return_type, node.name,
                                    ', '.join(params)))
         for child in node.body:
@@ -81,25 +79,25 @@ class AstToGlsl(ast.NodeVisitor):
 
     def visit_Pass(self, _):
         # pylint: disable=no-self-use
-        return Code()
+        return GlslCode()
 
     def visit_arg(self, node):
         if node.annotation is None:
             raise ValueError('untyped argument: {}'.format(ast.dump(node)))
         adecl = ArraySpec.from_ast_node(node.annotation)
         if adecl is not None:
-            return Code('{} {}[{}]'.format(adecl.element_type, node.arg,
-                                           adecl.length))
+            return GlslCode('{} {}[{}]'.format(adecl.element_type, node.arg,
+                                               adecl.length))
 
         gtype = self.visit(node.annotation).one()
-        return Code('{} {}'.format(gtype, node.arg))
+        return GlslCode('{} {}'.format(gtype, node.arg))
 
     def visit_Name(self, node):
         # pylint: disable=no-self-use
-        return Code(node.id)
+        return GlslCode(node.id)
 
     def visit_Attribute(self, node):
-        return Code('{}.{}'.format(self.visit(node.value).one(), node.attr))
+        return GlslCode('{}{}'.format(self.visit(node.value).one() + "." if hasattr(node, "value") else "", node.attr))
 
     @staticmethod
     def is_var_decl(node):
@@ -114,16 +112,16 @@ class AstToGlsl(ast.NodeVisitor):
         aspec = ArraySpec.from_ast_node(node.value)
         if aspec is None:
             return None
-        return Code('{} {}[{}]'.format(aspec.element_type,
-                                       self.visit(target).one(),
-                                       aspec.length))
+        return GlslCode('{} {}[{}]'.format(aspec.element_type,
+                                           self.visit(target).one(),
+                                           aspec.length))
 
     def make_var_decl(self, node):
         target = node.targets[0]
         gtype = node.value.func.id
-        return Code('{} {} = {}'.format(gtype,
-                                        self.visit(target).one(),
-                                        self.visit(node.value).one()))
+        return GlslCode('{} {} = {}'.format(gtype,
+                                            self.visit(target).one(),
+                                            self.visit(node.value).one()))
 
     def visit_NoDeclAssign(self, node):
         return self.visit_Assign(node, allow_decl=False)
@@ -137,50 +135,50 @@ class AstToGlsl(ast.NodeVisitor):
         adecl = self.get_array_decl(node)
         if adecl is not None:
             return adecl
-        return Code('{} = {}'.format(self.visit(target).one(),
-                                     self.visit(node.value).one()))
+        return GlslCode('{} = {}'.format(self.visit(target).one(),
+                                         self.visit(node.value).one()))
 
     def visit_Num(self, node):
         # pylint: disable=no-self-use
-        return Code(str(node.n))
+        return GlslCode(str(node.n))
 
     def visit_Call(self, node):
         args = (self.visit(arg).one() for arg in node.args)
         name = self.visit(node.func).one()
-        return Code('{}({})'.format(name, ', '.join(args)))
+        return GlslCode('{}({})'.format(name, ', '.join(args)))
 
     def visit_Return(self, node):
-        return Code('return {}'.format(self.visit(node.value).one()))
+        return GlslCode('return {}'.format(self.visit(node.value).one()))
 
     def visit_Expr(self, node):
         return self.visit(node.value)
 
     def visit_Str(self, node):
         # pylint: disable=no-self-use,unused-argument
-        return Code()
+        return GlslCode()
 
     def visit_UnaryOp(self, node):
-        return Code('{}{}'.format(op_symbol(node.op),
-                                  self.visit(node.operand).one()))
+        return GlslCode('{}{}'.format(op_symbol(node.op),
+                                      self.visit(node.operand).one()))
 
     def visit_BinOp(self, node):
-        return Code('({} {} {})'.format(
+        return GlslCode('({} {} {})'.format(
             self.visit(node.left).one(),
             op_symbol(node.op),
             self.visit(node.right).one(),
         ))
 
     def visit_Subscript(self, node):
-        return Code('{}{}'.format(self.visit(node.value).one(),
-                                  self.visit(node.slice).one()))
+        return GlslCode('{}[{}]'.format(self.visit(node.value).one(),
+                                        self.visit(node.slice).one()))
 
     def visit_Index(self, node):
-        return Code('[{}]'.format(self.visit(node.value).one()))
+        return GlslCode('[{}]'.format(self.visit(node.value).one()))
 
     def visit_AugAssign(self, node):
-        return Code('{} {}= {}'.format(self.visit(node.target).one(),
-                                       op_symbol(node.op),
-                                       self.visit(node.value).one()))
+        return GlslCode('{} {}= {}'.format(self.visit(node.target).one(),
+                                           op_symbol(node.op),
+                                           self.visit(node.value).one()))
 
     def visit_Compare(self, node):
         if len(node.ops) != 1 or len(node.comparators) != 1:
@@ -188,12 +186,12 @@ class AstToGlsl(ast.NodeVisitor):
                                       node)
         op = node.ops[0]
         right = node.comparators[0]
-        return Code('{} {} {}'.format(self.visit(node.left).one(),
-                                      op_symbol(op),
-                                      self.visit(right).one()))
+        return GlslCode('{} {} {}'.format(self.visit(node.left).one(),
+                                          op_symbol(op),
+                                          self.visit(right).one()))
 
     def visit_If(self, node):
-        code = Code('if ({}) {{'.format(self.visit(node.test).one()))
+        code = GlslCode('if ({}) {{'.format(self.visit(node.test).one()))
         for child in node.body:
             code.append_block(self.visit(child))
         # TODO(nicholasbishop): emit "else if" to make output cleaner
@@ -214,7 +212,7 @@ class AstToGlsl(ast.NodeVisitor):
             raise NotImplementedError('only 0..n for loops are supported')
         end = self.visit(itr.args[0]).one()
         var = self.visit(node.target).one()
-        code = Code()
+        code = GlslCode()
         code('for (int {var} = 0; {var} < {end}; {var}++) {{'.format(var=var,
                                                                      end=end))
         for child in node.body:
@@ -223,22 +221,22 @@ class AstToGlsl(ast.NodeVisitor):
         return code
 
     def visit(self, node):
-        ret = super().visit(node)
-        if ret is None:
-            raise KeyError('unhandled ast node type',
-                           ast.dump(node))
-        else:
-            return ret
+        glsl = super().visit(node)
+        if not glsl:
+            raise ValueError(ast.dump(node))
+        return glsl
 
+def dedent(lines):
+    """De-indent based on the first line's indentation."""
+    if len(lines) != 0:
+        first = lines[0].lstrip()
+        strip_len = len(lines[0]) - len(first)
+        for line in lines:
+            if len(line[:strip_len].strip()) != 0:
+                raise ValueError('less indentation than first line: ' +
+                                 line)
+            else:
+                yield line[strip_len:]
 
-def py_to_glsl(root):
-    """Translate Python AST into GLSL code.
-
-    root: an ast.FunctionDef object
-
-    Return a list of strings, where each string is a line of GLSL
-    code.
-    """
-    atg = AstToGlsl()
-    code = atg.visit(root)
-    return code.lines
+def parse(func):
+    return ast.parse('\n'.join(dedent(getsource(func).splitlines())))

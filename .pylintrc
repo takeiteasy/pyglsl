@@ -1,5 +1,0 @@
-[TYPECHECK]
-ignored-classes=_CountingAttr
-
-[MESSAGE CONTROL]
-disable=fixme,locally-disabled,missing-docstring,too-few-public-methods

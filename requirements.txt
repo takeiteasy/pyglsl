@@ -1,2 +1,2 @@
-attrs>=16.0.0
-typing>=3.5.2.2
+attrs==25.1.0
+typing==3.7.4.3

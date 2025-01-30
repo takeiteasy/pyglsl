@@ -1,8 +1,6 @@
 import ast
-from typing import (Generic, SupportsAbs, SupportsInt, SupportsFloat,
-                    TypeVar)
-
 import attr
+from typing import SupportsAbs, SupportsInt, SupportsFloat, TypeVar, Generic
 
 class GlslType(SupportsAbs, SupportsInt, SupportsFloat):
     def __init__(self, *args, **kwargs):
@@ -39,19 +37,6 @@ class GlslType(SupportsAbs, SupportsInt, SupportsFloat):
     def __float__(self):
         pass
 
-
-# pylint: disable=invalid-name
-mat2 = GlslType
-mat3 = GlslType
-mat4 = GlslType
-vec2 = GlslType
-vec3 = GlslType
-vec4 = GlslType
-
-class void(object):
-    pass
-
-# TODO
 GlslArrayElem = TypeVar('GlslArrayElem')
 class GlslArray(Generic[GlslArrayElem]):
     def __init__(self, gtype):
@@ -62,29 +47,6 @@ class GlslArray(Generic[GlslArrayElem]):
 
     def __setitem__(self, index, val):
         return GlslType(self, index, val)
-
-
-# TODO(nicholasbishop): this is obviously really ugly, and requires
-# users to define their own type alias for larger arrays. But at least
-# for now it seems that numbers aren't allowed as type parameters in
-# the style that C++ allows (e.g. std::array<float, 3>)
-Array1 = GlslArray
-Array2 = GlslArray
-Array3 = GlslArray
-Array4 = GlslArray
-Array5 = GlslArray
-Array6 = GlslArray
-Array7 = GlslArray
-Array8 = GlslArray
-Array9 = GlslArray
-Array10 = GlslArray
-Array11 = GlslArray
-Array12 = GlslArray
-Array13 = GlslArray
-Array14 = GlslArray
-Array15 = GlslArray
-Array16 = GlslArray
-
 
 @attr.s
 class ArraySpec(object):
@@ -115,17 +77,7 @@ class ArraySpec(object):
             num = int(name[len(prefix):])
         except ValueError:
             return None
-        if not isinstance(node.slice.value, ast.Name):
+        if not isinstance(node.slice, ast.Name):
             return None
-        gtype = node.slice.value.id
+        gtype = node.slice.id
         return cls(gtype, num)
-
-
-# TODO
-triangles = 'triangles'
-triangle_strip = 'triangle_strip'
-
-
-# TODO
-class noperspective(object):
-    pass
