@@ -1,7 +1,9 @@
 import glfw
 from OpenGL.GL import *
+from contextlib import contextmanager
 
-def compile_shader(vertex: str, fragment: str) -> bool:
+@contextmanager
+def opengl_context():
     glfw.init()
     glfw.window_hint(glfw.VISIBLE, False)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
@@ -9,7 +11,10 @@ def compile_shader(vertex: str, fragment: str) -> bool:
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     window = glfw.create_window(100, 100, "hidden", None, None)
     glfw.make_context_current(window)
+    yield
+    glfw.terminate()
 
+def compile_shader(vertex: str, fragment: str) -> bool:
     vertex_id = glCreateShader(GL_VERTEX_SHADER)
     fragment_id = glCreateShader(GL_FRAGMENT_SHADER)
 
@@ -42,5 +47,4 @@ def compile_shader(vertex: str, fragment: str) -> bool:
     glDeleteProgram(program)  # Deallocate program when finished
     glDeleteShader(vertex_id)  # Deallocate shaders
     glDeleteShader(fragment_id)
-    glfw.terminate()
     return True

@@ -10,6 +10,9 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 > [!IMPORTANT]
 > Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable.
 
+> [!WARNING]
+> Not every aspect of Python is supported when writing a shader. For example, loops are limited to `for i in range()` type loops.
+
 > [!NOTE]
 > It is a good idea to keep your pyglsl shader code in a seperate file and importing with ```from pyglsl.glsl import *```. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL. This **will** pollute your namespace.
 
@@ -132,6 +135,7 @@ Voilà.
 
 ## TODO
 
+- [ ] Documentation
 - [ ] Finish adding GLSL types + builtins
 - [ ] Add to pypi
 - [ ] Geometry Shaders

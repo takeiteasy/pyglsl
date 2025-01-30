@@ -108,11 +108,6 @@ class Stage:
             lines += ptype.declare_input_block(instance_name=name,
                                                array=is_array)
 
-        # TODO(nicholasbishop): for now we don't attempt to check if
-        # the function is actually used, just define them all
-        for f in self.library:
-            lines.extend(GlslVisitor().visit(parse(f)).lines)
-
         node = self.root.body[0]
         if not isinstance(node, ast.FunctionDef):
             raise TypeError('input must be an ast.FunctionDef', node)
@@ -131,5 +126,10 @@ class Stage:
 
         if self.return_type is not None:
             lines += self.return_type.declare_output_block()
+
+        # TODO(nicholasbishop): for now we don't attempt to check if
+        # the function is actually used, just define them all
+        for f in self.library:
+            lines.extend(GlslVisitor().visit(parse(f)).lines)
 
         return '\n'.join(lines + visitor.visit(self.root).lines)
