@@ -1,7 +1,7 @@
 # pyglsl
 
 > [!CAUTION]
-> Work in progress
+> Work in progress, see [TODO](#todo) section.
 
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef).
 
