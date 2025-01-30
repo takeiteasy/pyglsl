@@ -38,3 +38,5 @@ def exp2(*args, **kwargs):
 def mod(*args, **kwargs):
     pass
 
+def mix(*args, **kwargs):
+    pass

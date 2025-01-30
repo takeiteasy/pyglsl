@@ -45,12 +45,7 @@ class _RewriteReturn(ast.NodeTransformer):
         return self._output_to_list(node)
 
     def visit_Expr(self, node):  # pylint: disable=invalid-name
-        if isinstance(node.value, ast.Yield):
-            lst = self._output_to_list(node.value)
-            lst.append(ast.parse('EmitVertex()'))
-            return lst
-        else:
-            return node
+        return node
 
 class _Renamer(ast.NodeTransformer):
     # pylint: disable=invalid-name
@@ -71,9 +66,6 @@ class _Renamer(ast.NodeTransformer):
             node.attr = new_name
 
         return node
-
-def rename_ast_nodes(root_node, names):
-    return _Renamer(names).visit(root_node)
 
 class Stage:
     def __init__(self,
@@ -117,7 +109,8 @@ class Stage:
 
         node = _RewriteReturn(self.return_type).visit(node)
         ast.fix_missing_locations(node)
-        node = _Renamer({'gl_position': 'gl_Position'}).visit(node)
+        node = _Renamer({'gl_position': 'gl_Position',
+                         'gl_fragcolor': 'gl_FragColor'}).visit(node)
 
         if self.return_type is not None:
             lines += self.return_type.declare_output_block()
