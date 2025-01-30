@@ -5,10 +5,19 @@
 
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef).
 
+## Example
+
 > [!IMPORTANT]
 > Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable.
 
+> [!NOTE]
+> It is a good idea to keep your pyglsl shader code in a seperate file and importing with ```from pyglsl.glsl import *```. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL. This **will** pollute your namespace.
+
+### Python input
+
 ```python
+# shader.py
+
 from pyglsl.glsl import *
 
 class VertAttrs(AttributeBlock):
@@ -42,13 +51,38 @@ def frag_shader(vs_out: VsOut) -> FsOut:
                  (vs_out.normal.y + 1.0) * 0.5,
                  (vs_out.normal.z + 1.0) * 0.5,
                  1.0)
-    return FsOut(fs_color=mix(vs_out.color, color))
+    return FsOut(fs_color=mix(vs_out.color, color, 1.0))
 
+# ShaderDef class is optional. Makes shaders easier to export+import
 export = ShaderDef(vertex_shader=vert_shader,
                    fragment_shader=frag_shader,
                    vertex_functions=[perspective_projection])
 ```
 
+Then import the shader module and compile.
+
+```python
+# example.py
+
+# import shader module (shader.py)
+from shader import export as test_shader
+
+# NOTE: You can compile each stage individually by using the Stage class. This is if you
+#       don't want to use the ShaderDef class inside of your pyglsl shader.
+# from pyglsl import VertexStage, FragmentStage
+# from shader import vert_shader, frag_shader, perspective_projection
+# vs_stage = VertexStage(vert_shader, library=[perspective_projection])
+# fs_stage = FragmentStage(frag_shader)
+# vs = vs_stage.compile()
+# fs = fs_stage.compile()
+
+# Compile Python AST to GLSL + print
+vs, fs = test_shader.compile()
+print(vs)
+print(fs)
+```
+
+### Vertex shader output
 ```glsl
 #version 330 core
 
@@ -76,6 +110,8 @@ void main() {
 }
 ```
 
+### Fragment shader output
+
 ```glsl
 #version 330 core
 
@@ -88,13 +124,16 @@ layout(location=0) out vec4 fs_color;
 
 void main() {
     vec4 color = vec4(((vs_out.normal.x + 1.0) * 0.5), ((vs_out.normal.y + 1.0) * 0.5), ((vs_out.normal.z + 1.0) * 0.5), 1.0);
-    fs_color = mix(vs_out.color, color);
+    fs_color = mix(vs_out.color, color, 1.0);
 }
 ```
+
+Voilà.
 
 ## TODO
 
 - [ ] Finish adding GLSL types + builtins
+- [ ] Add to pypi
 - [ ] Geometry Shaders
 
 ## LICENSE

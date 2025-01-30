@@ -31,7 +31,7 @@ def frag_shader(vs_out: VsOut) -> FsOut:
                  (vs_out.normal.y + 1.0) * 0.5,
                  (vs_out.normal.z + 1.0) * 0.5,
                  1.0)
-    return FsOut(fs_color=mix(vs_out.color, color))
+    return FsOut(fs_color=mix(vs_out.color, color, 1.0))
 
 export = ShaderDef(vertex_shader=vert_shader,
                    fragment_shader=frag_shader,

@@ -17,10 +17,10 @@ def compile_shader(vertex: str, fragment: str) -> bool:
         glShaderSource(shader, src)
         glCompileShader(shader)
         if not glGetShaderiv(shader, GL_COMPILE_STATUS):
-            error_log = glGetShaderInfoLog(shader).decode('utf-8')
-            print(f"{name} shader compilation failed:\n{error_log}")
-            glDeleteShader(shader)  # Cleanup if compilation fails
-            return False
+            error_log = glGetShaderInfoLog(shader)
+            if error_log:
+                print(f"{name} shader compilation failed:\n{error_log}")
+                return False
         return True
 
     if (not make_shader(vertex_id, vertex, "Vertex") or
@@ -31,12 +31,12 @@ def compile_shader(vertex: str, fragment: str) -> bool:
     glAttachShader(program, vertex_id)
     glAttachShader(program, fragment_id)
     glLinkProgram(program)
-    glValidateProgram(program)
 
     if glGetProgramiv(program, GL_VALIDATE_STATUS) != GL_TRUE:
-        error_log = glGetProgramInfoLog(program).decode('utf-8')
-        print(f"Program validation failed:\n{error_log}")
-        return False
+        error_log = glGetProgramInfoLog(program)
+        if error_log:
+            print(f"Program validation failed:\n{error_log}")
+            return False
 
     print(vertex_id, fragment_id, program)
     glDeleteProgram(program)  # Deallocate program when finished

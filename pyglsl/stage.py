@@ -1,5 +1,7 @@
 import ast
 from typing import Optional, Union, Sequence, List, Callable, Any, get_type_hints
+
+from .interface import snake_case
 from .parse import parse, GlslVisitor
 
 class NoDeclAssign(ast.Assign):
@@ -39,7 +41,8 @@ class _RewriteReturn(ast.NodeTransformer):
 
     def _output_to_list(self, node):
         parent = ast.Name(id=self.interface.instance_name(), ctx=ast.Load())
-        return list(kwargs_as_assignments(node.value, parent))
+        x = list(kwargs_as_assignments(node.value, parent))
+        return x
 
     def visit_Return(self, node):  # pylint: disable=invalid-name
         return self._output_to_list(node)
@@ -67,6 +70,16 @@ class _Renamer(ast.NodeTransformer):
 
         return node
 
+class _Remover(ast.NodeTransformer):
+    def __init__(self, names):
+        self.names = names
+
+    def visit_Attribute(self, node):
+        if hasattr(node, "value"):
+            if isinstance(node.value, ast.Name) and node.value.id in self.names:
+                delattr(node, "value")
+        return node
+
 class Stage:
     def __init__(self,
                  func: Callable[..., Any],
@@ -82,8 +95,8 @@ class Stage:
     def add_function(self, func: Union[Callable[..., Any], List[Callable[..., Any]]]):
         self.library = list(set(self.library + (func if isinstance(func, list) else [func])))
 
-    def compile(self):
-        lines = [f"#version {self.version}\n"]
+    def compile(self, is_fragment: Optional[bool] = False):
+        lines = [f"#version {self.version}"]
         visitor = GlslVisitor()
 
         for name, ptype in sorted(self.params.items()):
@@ -111,6 +124,10 @@ class Stage:
         ast.fix_missing_locations(node)
         node = _Renamer({'gl_position': 'gl_Position',
                          'gl_fragcolor': 'gl_FragColor'}).visit(node)
+        rem_names = [name for name, _ in self.params.items()]
+        if is_fragment:
+            rem_names.append(snake_case(self.return_type.__name__))
+        node = _Remover(rem_names).visit(node)
 
         if self.return_type is not None:
             lines += self.return_type.declare_output_block()

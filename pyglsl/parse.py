@@ -97,7 +97,7 @@ class GlslVisitor(ast.NodeVisitor):
         return GlslCode(node.id)
 
     def visit_Attribute(self, node):
-        return GlslCode('{}.{}'.format(self.visit(node.value).one(), node.attr))
+        return GlslCode('{}{}'.format(self.visit(node.value).one() + "." if hasattr(node, "value") else "", node.attr))
 
     @staticmethod
     def is_var_decl(node):

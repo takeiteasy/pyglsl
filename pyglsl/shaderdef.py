@@ -13,4 +13,4 @@ class ShaderDef:
     def compile(self):
         v = Stage(self.vertex_shader, self.version, self.vertex_functions)
         f = Stage(self.fragment_shader, self.version, self.fragment_functions)
-        return v.compile(), f.compile()
+        return v.compile(), f.compile(is_fragment=True)
