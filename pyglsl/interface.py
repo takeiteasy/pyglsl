@@ -1,5 +1,6 @@
 import ast
 import attr
+import attrs
 from .parse import parse
 
 def _gdecl(*parts):

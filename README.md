@@ -3,17 +3,20 @@
 > [!CAUTION]
 > Work in progress, see [TODO](#todo) section.
 
-Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef).
+Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
+
+> [!NOTE]
+> `pip install pyglsl==0.0.1`
 
 ## Example
 
 > [!IMPORTANT]
-> Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable.
+> Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable. There is also no static analysis beyond what is valid Python. Errors will have to be deciphered after compiling or runtime.
 
 > [!WARNING]
 > Not every aspect of Python is supported when writing a shader. For example, loops are limited to `for i in range()` type loops.
 
-> [!NOTE]
+> [!TIP]
 > It is a good idea to keep your pyglsl shader code in a seperate file and importing with ```from pyglsl.glsl import *```. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL. This **will** pollute your namespace.
 
 ### Python input
@@ -70,7 +73,7 @@ Then import the shader module and compile.
 # import shader module (shader.py)
 from shader import export as test_shader
 
-# NOTE: You can compile each stage individually by using the Stage class. This is if you
+# NOTE: You can compile each stage individually by using the *Stage classes. This is if you
 #       don't want to use the ShaderDef class inside of your pyglsl shader.
 # from pyglsl import VertexStage, FragmentStage
 # from shader import vert_shader, frag_shader, perspective_projection
@@ -137,7 +140,7 @@ Voilà.
 
 - [ ] Documentation
 - [ ] Finish adding GLSL types + builtins
-- [ ] Add to pypi
+- [X] [~~Add to pypi~~](https://pypi.org/project/pyglsl/)
 - [ ] Geometry Shaders
 
 ## LICENSE

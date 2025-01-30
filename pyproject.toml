@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=72.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyglsl"
+version = "0.0.1"
+authors = [
+  { name="George Watson", email="gigolo@hotmail.co.uk" },
+]
+description = "Transform Python to GLSL"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "attrs==25.1.0",
+    "typing==3.7.4.3"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/takeiteasy/pyglsl"
+Issues = "https://github.com/takeiteasy/pyglsl/issues"

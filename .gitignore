@@ -8,4 +8,8 @@ __pycachce__/
 *.iml
 build/
 *.txt
-*.db
+env/
+dist/
+*.egg-info/
+**/*.egg-info/
+.eggs/
