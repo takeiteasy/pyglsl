@@ -33,7 +33,7 @@ setup(
     version="0.0.2",
     author="George Watson",
     author_email="gigolo@hotmail.co.uk",
-    description="Python bindings for librope",
+    description="Transform Python to GLSL",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/takeiteasy/pyglsl",
@@ -43,7 +43,4 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ]
-)
-
+        "Operating System :: OS Independent"])

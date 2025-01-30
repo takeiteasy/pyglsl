@@ -6,7 +6,7 @@
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
 
 > [!NOTE]
-> `pip install pyglsl==0.0.1`
+> `pip install pyglsl==0.0.2`
 
 ## Example
 
@@ -139,7 +139,7 @@ Voilà.
 ## TODO
 
 - [ ] Documentation
-- [ ] Finish adding GLSL types + builtins
+- [X] ~~Finish adding GLSL types + builtins~~
 - [X] [~~Add to pypi~~](https://pypi.org/project/pyglsl/)
 - [ ] Geometry Shaders
 

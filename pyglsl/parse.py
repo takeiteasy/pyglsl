@@ -27,18 +27,25 @@ class GlslCode(object):
 def op_symbol(op_node):
     """Get the GLSL symbol for a Python operator."""
     ops = {
-        # TODO(nicholasbishop): other unary ops
+        # UnaryOp
         ast.UAdd: '+',
         ast.USub: '-',
-
-        # TODO(nicholasbishop): FloorDiv, Pow, LShift, RShift,
-        # BitOr, BitXor, BitAnd
+        ast.Not: '!',
+        # BinOp
         ast.Add: '+',
         ast.Sub: '-',
         ast.Mult: '*',
+        ast.MatMult: '*',
         ast.Div: '/',
         ast.Mod: '%',
-
+        ast.LShift: '<<',
+        ast.RShift: '>>',
+        ast.BitOr: '|',
+        ast.BitXor: '^',
+        ast.BitAnd: '&',
+        # BoolOp
+        ast.And: '&&',
+        ast.Or: '||',
         # Comparison
         ast.Eq: '=',
         ast.NotEq: '!=',
@@ -46,10 +53,9 @@ def op_symbol(op_node):
         ast.LtE: '<=',
         ast.Gt: '>',
         ast.GtE: '>=',
+        ast.Is: '==',
+        ast.IsNot: '!='
     }
-    # Python3 matrix multiplication
-    if hasattr(ast, 'MatMult'):
-        ops[ast.MatMult] = '*'
     return ops[op_node.__class__]
 
 class GlslVisitor(ast.NodeVisitor):

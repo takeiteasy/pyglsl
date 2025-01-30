@@ -15,6 +15,9 @@ class VsOut(ShaderInterface):
     normal = vec3()
     color = vec4()
 
+class FsIn(UniformBlock):
+    tex = sampler2D()
+
 class FsOut(FragmentShaderOutputBlock):
     fs_color = vec4()
 
@@ -26,7 +29,7 @@ def vert_shader(view: View, attr: VertAttrs) -> VsOut:
                  normal=attr.vert_nor,
                  color=attr.vert_col)
 
-def frag_shader(vs_out: VsOut) -> FsOut:
+def frag_shader(vs_out: VsOut, fs_in: FsIn) -> FsOut:
     color = vec4((vs_out.normal.x + 1.0) * 0.5,
                  (vs_out.normal.y + 1.0) * 0.5,
                  (vs_out.normal.z + 1.0) * 0.5,
