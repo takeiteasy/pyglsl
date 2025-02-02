@@ -30,7 +30,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="pyglsl",
-    version="0.0.2",
+    version="0.0.3",
     author="George Watson",
     author_email="gigolo@hotmail.co.uk",
     description="Transform Python to GLSL",

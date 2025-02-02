@@ -1,8 +1,7 @@
 import ast
 from typing import Optional, Union, Sequence, List, Callable, Any, get_type_hints
-
-from .interface import snake_case
-from .parse import parse, GlslVisitor
+from pyglsl.interface import snake_case, ShaderInterface
+from pyglsl.parse import parse, GlslVisitor
 
 class NoDeclAssign(ast.Assign):
     """Mark an assignment as one that doesn't need to be declared.
@@ -119,9 +118,12 @@ class Stage:
         ast.fix_missing_locations(node)
         node = _Renamer({'gl_position': 'gl_Position',
                          'gl_fragcolor': 'gl_FragColor'}).visit(node)
-        rem_names = [name for name, _ in self.params.items()]
+
         if is_fragment:
+            rem_names = [name for name, ptype in self.params.items() if ptype.__bases__[0] is not ShaderInterface]
             rem_names.append(snake_case(self.return_type.__name__))
+        else:
+            rem_names = [name for name, _ in self.params.items()]
         node = _Remover(rem_names).visit(node)
 
         if self.return_type is not None:
