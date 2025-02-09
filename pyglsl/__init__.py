@@ -24,4 +24,4 @@ class VertexStage(Stage):
 
 class FragmentStage(Stage):
     def compile(self):
-        super().compile(is_fragment=True)
+        return super().compile(is_fragment=True)
