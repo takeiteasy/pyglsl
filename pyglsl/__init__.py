@@ -16,12 +16,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .stage import Stage
+from .stage import Stage, VertexStage, FragmentStage
 from .shaderdef import ShaderDef
-
-class VertexStage(Stage):
-    pass
-
-class FragmentStage(Stage):
-    def compile(self):
-        return super().compile(is_fragment=True)

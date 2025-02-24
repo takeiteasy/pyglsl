@@ -149,7 +149,15 @@ class Stage:
 
         # TODO(nicholasbishop): for now we don't attempt to check if
         # the function is actually used, just define them all
-        for f in self.library:
-            lines.extend(GlslVisitor().visit(parse(f)).lines)
+        if self.library is not None:
+            for f in self.library:
+                lines.extend(GlslVisitor().visit(parse(f)).lines)
 
         return '\n'.join(lines + visitor.visit(self.root).lines)
+
+class VertexStage(Stage):
+    pass
+
+class FragmentStage(Stage):
+    def compile(self, is_fragment=True):
+        return super().compile(is_fragment=True)

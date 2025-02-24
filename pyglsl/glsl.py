@@ -18,7 +18,6 @@
 
 from .interface import ShaderInterface, UniformBlock, AttributeBlock, FragmentShaderOutputBlock
 from .types import GlslType, GlslArray
-from .shaderdef import ShaderDef
 
 bool = GlslType
 int = GlslType
@@ -155,88 +154,31 @@ class void(object):
 def abs(*args, **kwargs):
     pass
 
-def acos(*args, **kwargs):
-    pass
-
-def asin(*args, **kwargs):
-    pass
-
-def atan(*args, **kwargs):
-    pass
-
-def atan2(*args, **kwargs):
-    pass
-
 def ceil(*args, **kwargs):
-    pass
-
-def clamp(*args, **kwargs):
-    pass
-
-def cos(*args, **kwargs):
-    pass
-
-def cosh(*args, **kwargs):
-    pass
-
-def degrees(*args, **kwargs):
-    pass
-
-def exp(*args, **kwargs):
-    pass
-
-def exp2(*args, **kwargs):
     pass
 
 def floor(*args, **kwargs):
     pass
 
-def fract(*args, **kwargs):
-    pass
-
-def fwidth(*args, **kwargs):
-    pass
-
-def inversesqrt(*args, **kwargs):
-    pass
-
-def log(*args, **kwargs):
-    pass
-
-def log2(*args, **kwargs):
-    pass
-
-def max(*args, **kwargs):
-    pass
-
-def min(*args, **kwargs):
+def round(*args, **kwargs):
     pass
 
 def mod(*args, **kwargs):
     pass
 
-def normalize(*args, **kwargs):
+def min(*args, **kwargs):
     pass
 
-def pow(*args, **kwargs):
+def max(*args, **kwargs):
     pass
 
-def radians(*args, **kwargs):
+def clamp(*args, **kwargs):
     pass
 
-def round(*args, **kwargs):
+def mix(*args, **kwargs):
     pass
 
-def roundEven(*args, **kwargs):
-    pass
-
-def sign(*args, **kwargs):
-    pass
-
-def sin(*args, **kwargs):
-    pass
-
-def sinh(*args, **kwargs):
+def step(*args, **kwargs):
     pass
 
 def smoothstep(*args, **kwargs):
@@ -245,19 +187,49 @@ def smoothstep(*args, **kwargs):
 def sqrt(*args, **kwargs):
     pass
 
-def step(*args, **kwargs):
+def pow(*args, **kwargs):
+    pass
+
+def exp(*args, **kwargs):
+    pass
+
+def log(*args, **kwargs):
+    pass
+
+def exp2(*args, **kwargs):
+    pass
+
+def log2(*args, **kwargs):
+    pass
+
+def sin(*args, **kwargs):
+    pass
+
+def cos(*args, **kwargs):
     pass
 
 def tan(*args, **kwargs):
     pass
 
-def tanh(*args, **kwargs):
+def asin(*args, **kwargs):
     pass
 
-def trunc(*args, **kwargs):
+def acos(*args, **kwargs):
     pass
 
-def cross(*args, **kwargs):
+def atan(*args, **kwargs):
+    pass
+
+def atan2(*args, **kwargs):
+    pass
+
+def radians(*args, **kwargs):
+    pass
+
+def degrees(*args, **kwargs):
+    pass
+
+def length(*args, **kwargs):
     pass
 
 def distance(*args, **kwargs):
@@ -266,7 +238,10 @@ def distance(*args, **kwargs):
 def dot(*args, **kwargs):
     pass
 
-def length(*args, **kwargs):
+def cross(*args, **kwargs):
+    pass
+
+def normalize(*args, **kwargs):
     pass
 
 def reflect(*args, **kwargs):
@@ -275,22 +250,22 @@ def reflect(*args, **kwargs):
 def refract(*args, **kwargs):
     pass
 
-def equal(*args, **kwargs):
+def vecX(*args, **kwargs):
     pass
 
-def greaterThan(*args, **kwargs):
+def matX(*args, **kwargs):
     pass
 
-def greaterThanEqual(*args, **kwargs):
+def transpose(*args, **kwargs):
     pass
 
-def lessThan(*args, **kwargs):
+def inverse(*args, **kwargs):
     pass
 
-def lessThanEqual(*args, **kwargs):
+def outerProduct(*args, **kwargs):
     pass
 
-def notEqual(*args, **kwargs):
+def determinant(*args, **kwargs):
     pass
 
 def texture(*args, **kwargs):
@@ -302,152 +277,53 @@ def textureLod(*args, **kwargs):
 def textureProj(*args, **kwargs):
     pass
 
-def textureGrad(*args, **kwargs):
+def textureOffset(*args, **kwargs):
     pass
 
-def textureFetch(*args, **kwargs):
+def texelFetch(*args, **kwargs):
     pass
 
-def textureSamples(*args, **kwargs):
+def noise1(*args, **kwargs):
     pass
 
-def textureSize(*args, **kwargs):
+def noise2(*args, **kwargs):
     pass
 
-def imageLoad(*args, **kwargs):
+def noise3(*args, **kwargs):
     pass
 
-def imageStore(*args, **kwargs):
+def noise4(*args, **kwargs):
     pass
 
-def imageAtomicAdd(*args, **kwargs):
+def dFdx(*args, **kwargs):
     pass
 
-def imageAtomicAnd(*args, **kwargs):
+def dFdy(*args, **kwargs):
     pass
 
-def imageAtomicCompSwap(*args, **kwargs):
+def fwidth(*args, **kwargs):
     pass
 
-def imageAtomicExchange(*args, **kwargs):
+def any(*args, **kwargs):
     pass
 
-def imageAtomicMax(*args, **kwargs):
+def all(*args, **kwargs):
     pass
 
-def imageAtomicMin(*args, **kwargs):
+def isnan(*args, **kwargs):
     pass
 
-def imageAtomicOr(*args, **kwargs):
+def isinf(*args, **kwargs):
     pass
 
-def imageAtomicSub(*args, **kwargs):
+def floatBitsToInt(*args, **kwargs):
     pass
 
-def imageAtomicXor(*args, **kwargs):
+def intBitsToFloat(*args, **kwargs):
     pass
 
-def mix(*args, **kwargs):
+def packUnorm2x16(*args, **kwargs):
     pass
 
-def fma(*args, **kwargs):
-    pass
-
-def interpolateAtCentroid(*args, **kwargs):
-    pass
-
-def interpolateAtSample(*args, **kwargs):
-    pass
-
-def interpolateAtVertex(*args, **kwargs):
-    pass
-
-def packUnorm4x8(*args, **kwargs):
-    pass
-
-def packSnorm4x8(*args, **kwargs):
-    pass
-
-def unpackUnorm4x8(*args, **kwargs):
-    pass
-
-def unpackSnorm4x8(*args, **kwargs):
-    pass
-
-def packHalf2x16(*args, **kwargs):
-    pass
-
-def unpackHalf2x16(*args, **kwargs):
-    pass
-
-def packDouble2x32(*args, **kwargs):
-    pass
-
-def unpackDouble2x32(*args, **kwargs):
-    pass
-
-def bitfieldExtract(*args, **kwargs):
-    pass
-
-def bitfieldInsert(*args, **kwargs):
-    pass
-
-def bitfieldReverse(*args, **kwargs):
-    pass
-
-def findLSB(*args, **kwargs):
-    pass
-
-def findMSB(*args, **kwargs):
-    pass
-
-def fma(*args, **kwargs):
-    pass
-
-def atomicAdd(*args, **kwargs):
-    pass
-
-def atomicMin(*args, **kwargs):
-    pass
-
-def atomicMax(*args, **kwargs):
-    pass
-
-def atomicAnd(*args, **kwargs):
-    pass
-
-def atomicOr(*args, **kwargs):
-    pass
-
-def atomicXor(*args, **kwargs):
-    pass
-
-def atomicExchange(*args, **kwargs):
-    pass
-
-def atomicCompSwap(*args, **kwargs):
-    pass
-
-def barrier(*args, **kwargs):
-    pass
-
-def memoryBarrier(*args, **kwargs):
-    pass
-
-def memoryBarrierAtomicCounter(*args, **kwargs):
-    pass
-
-def memoryBarrierBuffer(*args, **kwargs):
-    pass
-
-def memoryBarrierImage(*args, **kwargs):
-    pass
-
-def memoryBarrierShared(*args, **kwargs):
-    pass
-
-def groupMemoryBarrier(*args, **kwargs):
-    pass
-
-def groupMemoryBarrierShared(*args, **kwargs):
+def unpackUnorm2x16(*args, **kwargs):
     pass
