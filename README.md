@@ -6,7 +6,7 @@
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
 
 > [!NOTE]
-> `pip install pyglsl==0.0.6`
+> `pip install pyglsl==0.0.7`
 
 ## Example
 

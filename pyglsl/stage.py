@@ -93,7 +93,9 @@ class _Remover(ast.NodeTransformer):
 
     def visit_Attribute(self, node):
         if hasattr(node, "value"):
-            if isinstance(node.value, ast.Name) and node.value.id in self.names:
+            if isinstance(node.value, ast.Attribute):
+                node.value = self.visit(node.value)
+            elif isinstance(node.value, ast.Name) and node.value.id in self.names:
                 delattr(node, "value")
         return node
 
@@ -138,7 +140,7 @@ class Stage:
                          'gl_fragcolor': 'gl_FragColor'}).visit(node)
 
         if is_fragment:
-            rem_names = [name for name, ptype in self.params.items() if ptype.__bases__[0] is not ShaderInterface]
+            rem_names = [name for name, ptype in self.params.items() if ptype.__bases__[0].__name__ != 'ShaderInterface']
             rem_names.append(snake_case(self.return_type.__name__))
         else:
             rem_names = [name for name, _ in self.params.items()]
