@@ -1,4 +1,4 @@
-# Purely pythonic fast first-rate fully-functioning flexible feature-rich framework for fun
+# pyglsl -- https://github.com/takeiteasy/pyglsl
 #
 # Copyright (C) 2016 Nicholas Bishop
 # Copyright (C) 2025 George Watson
