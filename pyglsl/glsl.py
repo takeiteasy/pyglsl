@@ -151,6 +151,9 @@ Array16 = GlslArray
 class void(object):
     pass
 
+class discard(object):
+    pass
+
 def abs(*args, **kwargs):
     pass
 
