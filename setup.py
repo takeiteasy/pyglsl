@@ -30,6 +30,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="pyglsl",
+    python_requires='>=3.10',
     version="0.0.8",
     author="George Watson",
     author_email="gigolo@hotmail.co.uk",

@@ -1,4 +1,6 @@
 from pyglsl.glsl import *
+from pyglsl import ShaderDef
+
 
 class VertAttrs(AttributeBlock):
     vert_loc = vec3()

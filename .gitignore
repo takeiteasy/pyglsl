@@ -7,7 +7,7 @@ __pycachce__/
 **/__pycachce__/
 *.iml
 build/
-*.txt
+
 env/
 dist/
 *.egg-info/

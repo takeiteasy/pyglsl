@@ -1,23 +1,40 @@
 # pyglsl
 
-> [!CAUTION]
+> **CAUTION**
 > Work in progress, see [TODO](#todo) section.
 
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
 
-> [!NOTE]
 > `pip install pyglsl==0.0.8`
 
 ## Example
 
-> [!IMPORTANT]
+> **IMPORTANT**
 > Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable. There is also no static analysis beyond what is valid Python. Errors will have to be deciphered after compiling or runtime.
 
-> [!WARNING]
+> **WARNING**
 > Not every aspect of Python is supported when writing a shader. For example, loops are limited to `for i in range()` type loops.
 
-> [!TIP]
-> It is a good idea to keep your pyglsl shader code in a seperate file and importing with ```from pyglsl.glsl import *```. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL. This **will** pollute your namespace.
+> **TIP**
+> It is a good idea to keep your pyglsl shader code in a separate file and importing with `from pyglsl.glsl import *`. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL.
+
+> **WARNING: Namespace Pollution**
+> Using `from pyglsl.glsl import *` shadows Python built-in functions: `abs`, `min`, `max`, `round`, `pow`, `all`, `any`, `int`, `float`, and `bool`. After importing, these names will refer to GLSL type proxies instead of Python functions.
+>
+> **Safer alternatives:**
+> ```python
+> # Option 1: Import specific items you need
+> from pyglsl.glsl import vec3, vec4, mat4, normalize, dot
+> 
+> # Option 2: Use qualified imports
+> import pyglsl.glsl as glsl
+> position = glsl.vec3(0.0, 1.0, 2.0)
+> 
+> # Option 3: Import in shader file only, not main code
+> # shader.py - only GLSL code here
+> from pyglsl.glsl import *
+> ```
+
 
 ### Python input
 
@@ -135,13 +152,6 @@ void main() {
 ```
 
 Voilà.
-
-## TODO
-
-- [ ] Documentation
-- [X] ~~Finish adding GLSL types + builtins~~
-- [X] [~~Add to pypi~~](https://pypi.org/project/pyglsl/)
-- [ ] Geometry Shaders
 
 ## LICENSE
 ```

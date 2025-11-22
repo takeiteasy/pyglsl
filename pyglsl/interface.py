@@ -91,7 +91,20 @@ def _declare_block(block_type, block_name, instance_name, members,
 
 
 # https://www.opengl.org/wiki/Interface_Block_(GLSL)
-class ShaderInterface(object):
+class ShaderInterface:
+    """Base class for shader interface blocks.
+    
+    Interface blocks define data passed between shader stages or between
+    the application and shaders. Members are defined as class variables
+    initialized with GLSL type constructors.
+    
+    Example:
+        >>> from pyglsl.glsl import vec3, vec4
+        >>> class VsOut(ShaderInterface):
+        ...     position = vec4()
+        ...     normal = vec3()
+        ...     color = vec4()
+    """
     def __init__(self, **kwargs):
         pass
 
@@ -145,6 +158,20 @@ class ShaderInterface(object):
 
 
 class UniformBlock(ShaderInterface):
+    """Uniform variable block for shader constants.
+    
+    Uniforms are read-only variables set by the application that remain
+    constant during shader execution. Use for transformation matrices,
+    material properties, lighting parameters, etc.
+    
+    Example:
+        >>> from pyglsl.glsl import mat4, vec3
+        >>> class Transforms(UniformBlock):
+        ...     projection = mat4()
+        ...     view = mat4()
+        ...     model = mat4()
+        ...     lightPos = vec3()
+    """
     @classmethod
     def declare_input_block(cls, instance_name, array=None):
         if array is not None:
@@ -155,6 +182,22 @@ class UniformBlock(ShaderInterface):
 
 
 class AttributeBlock(ShaderInterface):
+    """Vertex attribute block for per-vertex data.
+    
+    Attributes are per-vertex inputs to vertex shaders, typically providing
+    position, normal, texture coordinates, and color data from vertex buffers.
+    
+    Note: GLSL does not allow attribute interface blocks, so each member
+    is declared with layout(location=N) individually.
+    
+    Example:
+        >>> from pyglsl.glsl import vec3, vec4, vec2
+        >>> class VertexAttribs(AttributeBlock):
+        ...     position = vec3()
+        ...     normal = vec3()
+        ...     texcoord = vec2()
+        ...     color = vec4()
+    """
     # For whatever reason GLSL doesn't allow attributes to be
     # aggregated into an interface block
     @classmethod
@@ -171,6 +214,18 @@ class AttributeBlock(ShaderInterface):
 
 
 class FragmentShaderOutputBlock(ShaderInterface):
+    """Fragment shader output block for framebuffer writes.
+    
+    Defines the color outputs written by a fragment shader to the framebuffer
+    or render targets. Each member gets layout(location=N) for binding to
+    specific framebuffer attachments.
+    
+    Example:
+        >>> from pyglsl.glsl import vec4
+        >>> class FragOutputs(FragmentShaderOutputBlock):
+        ...     color = vec4()  # Main color output
+        ...     bloom = vec4()  # Bloom/HDR output
+    """
     # As with attributes, blocks aren't allowed here
     @classmethod
     def declare_output_block(cls, array=None):

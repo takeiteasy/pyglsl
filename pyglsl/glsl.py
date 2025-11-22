@@ -19,6 +19,78 @@
 from .interface import ShaderInterface, UniformBlock, AttributeBlock, FragmentShaderOutputBlock
 from .types import GlslType, GlslArray
 
+# Explicit export list to control namespace pollution when using 'from pyglsl.glsl import *'
+__all__ = [
+    # Interface classes
+    'ShaderInterface', 'UniformBlock', 'AttributeBlock', 'FragmentShaderOutputBlock',
+    # Type classes  
+    'GlslType', 'GlslArray',
+    # Scalar types
+    'bool', 'int', 'uint', 'float', 'double',
+    # Vector types
+    'vec2', 'vec3', 'vec4',
+    'bvec2', 'bvec3', 'bvec4',
+    'ivec2', 'ivec3', 'ivec4',
+    'uvec2', 'uvec3', 'uvec4',
+    'dvec2', 'dvec3', 'dvec4',
+    # Matrix types
+    'mat2', 'mat3', 'mat4',
+    'mat2x2', 'mat2x3', 'mat2x4',
+    'mat3x2', 'mat3x3', 'mat3x4',
+    'mat4x2', 'mat4x3', 'mat4x4',
+    'dmat2', 'dmat3', 'dmat4',
+    'dmat2x2', 'dmat2x3', 'dmat2x4',
+    'dmat3x2', 'dmat3x3', 'dmat3x4',
+    'dmat4x2', 'dmat4x3', 'dmat4x4',
+    # Sampler types
+    'sampler1D', 'sampler2D', 'sampler3D', 'samplerCube',
+    'sampler1DShadow', 'sampler2DShadow', 'samplerCubeShadow',
+    'isampler1D', 'isampler2D', 'isampler3D', 'isamplerCube',
+    'usampler1D', 'usampler2D', 'usampler3D', 'usamplerCube',
+    'sampler2DRect', 'sampler2DRectShadow',
+    'isampler2DRect', 'usampler2DRect',
+    'samplerBuffer', 'isamplerBuffer', 'usamplerBuffer',
+    'sampler1DArray', 'sampler2DArray', 'samplerCubeArray',
+    'sampler1DArrayShadow', 'sampler2DArrayShadow', 'samplerCubeArrayShadow',
+    'isampler1DArray', 'isampler2DArray', 'isamplerCubeArray',
+    'usampler1DArray', 'usampler2DArray', 'usamplerCubeArray',
+    # Image types
+    'image1D', 'iimage1D', 'uimage1D',
+    'image2D', 'iimage2D', 'uimage2D',
+    'image3D', 'iimage3D', 'uimage3D',
+    'image2DRect', 'iimage2DRect', 'uimage2DRect',
+    'imageCube', 'iimageCube', 'uimageCube',
+    'imageBuffer', 'iimageBuffer', 'uimageBuffer',
+    'image1DArray', 'iimage1DArray', 'uimage1DArray',
+    'image2DArray', 'iimage2DArray', 'uimage2DArray',
+    'imageCubeArray', 'iimageCubeArray', 'uimageCubeArray',
+    # Array types
+    'Array1', 'Array2', 'Array3', 'Array4', 'Array5', 'Array6', 'Array7', 'Array8',
+    'Array9', 'Array10', 'Array11', 'Array12', 'Array13', 'Array14', 'Array15', 'Array16',
+    # Special classes
+    'void', 'discard',
+    # Built-in functions (WARNING: These shadow Python built-ins when imported with *)
+    'abs', 'min', 'max', 'round', 'pow', 'all', 'any',
+    # Math functions
+    'ceil', 'floor', 'mod', 'clamp', 'mix', 'step', 'smoothstep',
+    'sqrt', 'exp', 'log', 'exp2', 'log2',
+    # Trigonometric functions
+    'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'radians', 'degrees',
+    # Vector functions
+    'length', 'distance', 'dot', 'cross', 'normalize', 'reflect', 'refract',
+    # Matrix functions
+    'vecX', 'matX', 'transpose', 'inverse', 'outerProduct', 'determinant',
+    # Texture functions
+    'texture', 'textureLod', 'textureProj', 'textureOffset', 'texelFetch',
+    # Noise functions
+    'noise1', 'noise2', 'noise3', 'noise4',
+    # Derivative functions
+    'dFdx', 'dFdy', 'fwidth',
+    # Utility functions
+    'isnan', 'isinf', 'floatBitsToInt', 'intBitsToFloat',
+    'packUnorm2x16', 'unpackUnorm2x16',
+]
+
 bool = GlslType
 int = GlslType
 uint = GlslType

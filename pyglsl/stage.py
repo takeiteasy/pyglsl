@@ -18,6 +18,7 @@
 
 import ast
 from typing import Optional, Union, Sequence, List, Callable, Any, get_type_hints
+from .constants import GLSL_BUILTIN_RENAMES
 from pyglsl.interface import snake_case, ShaderInterface
 from pyglsl.parse import parse, GlslVisitor
 
@@ -31,8 +32,20 @@ class NoDeclAssign(ast.Assign):
     """
     pass
 
-def kwargs_as_assignments(call_node, parent):
-    """Yield NoDeclAssign nodes from kwargs in a Call node."""
+def kwargs_as_assignments(call_node: ast.Call, parent: ast.AST):
+    """Yield NoDeclAssign nodes from kwargs in a Call node.
+    
+    Args:
+        call_node: AST Call node containing keyword arguments
+        parent: Parent AST node for attribute generation
+    
+    Yields:
+        NoDeclAssign instances for each keyword argument
+    
+    Raises:
+        TypeError: If call_node is not an ast.Call
+        ValueError: If positional arguments are present
+    """
     if not isinstance(call_node, ast.Call):
         raise TypeError('node must be an ast.Call')
 
@@ -61,14 +74,13 @@ class _RewriteReturn(ast.NodeTransformer):
         x = list(kwargs_as_assignments(node.value, parent))
         return x
 
-    def visit_Return(self, node):  # pylint: disable=invalid-name
+    def visit_Return(self, node):
         return self._output_to_list(node)
 
-    def visit_Expr(self, node):  # pylint: disable=invalid-name
+    def visit_Expr(self, node):
         return node
 
 class _Renamer(ast.NodeTransformer):
-    # pylint: disable=invalid-name
     def __init__(self, names):
         self.names = names
 
@@ -100,6 +112,30 @@ class _Remover(ast.NodeTransformer):
         return node
 
 class Stage:
+    """Base class for shader compilation stages.
+    
+    Orchestrates the transformation of Python functions into GLSL shader code.
+    Handles type hint extraction, interface block generation, AST transformations,
+    and code generation.
+    
+    Args:
+        func: Python function to compile into a shader
+        version: GLSL version string (default: "330 core")
+        library: Optional list of helper functions to include in the shader
+    
+    Example:
+        >>> from pyglsl.glsl import vec3, vec4
+        >>> from pyglsl.interface import AttributeBlock
+        >>> 
+        >>> class Input(AttributeBlock):
+        ...     position = vec3()
+        >>> 
+        >>> def vert_shader(input: Input) -> None:
+        ...     gl_Position = vec4(input.position, 1.0)
+        >>> 
+        >>> stage = Stage(vert_shader)
+        >>> glsl_code = stage.compile()
+    """
     def __init__(self,
                  func: Callable[..., Any],
                  version: Optional[Union[str, int]] = "330 core",
@@ -136,8 +172,7 @@ class Stage:
 
         node = _RewriteReturn(self.return_type).visit(node)
         ast.fix_missing_locations(node)
-        node = _Renamer({'gl_position': 'gl_Position',
-                         'gl_fragcolor': 'gl_FragColor'}).visit(node)
+        node = _Renamer(GLSL_BUILTIN_RENAMES).visit(node)
 
         if is_fragment:
             rem_names = [name for name, ptype in self.params.items() if ptype.__bases__[0].__name__ != 'ShaderInterface']
@@ -149,8 +184,7 @@ class Stage:
         if self.return_type is not None:
             lines += self.return_type.declare_output_block()
 
-        # TODO(nicholasbishop): for now we don't attempt to check if
-        # the function is actually used, just define them all
+        # Include all library functions (no dead code elimination yet)
         if self.library is not None:
             for f in self.library:
                 lines.extend(GlslVisitor().visit(parse(f)).lines)
@@ -158,8 +192,26 @@ class Stage:
         return '\n'.join(lines + visitor.visit(self.root).lines)
 
 class VertexStage(Stage):
+    """Vertex shader compilation stage.
+    
+    Specialization of Stage for vertex shaders. Handles attribute inputs
+    and interface block outputs to fragment shaders.
+    
+    Example:
+        >>> from pyglsl import VertexStage
+        >>> glsl_code = VertexStage(my_vertex_function).compile()
+    """
     pass
 
 class FragmentStage(Stage):
+    """Fragment shader compilation stage.
+    
+    Specialization of Stage for fragment shaders. Handles interface block
+    inputs from vertex shaders and framebuffer outputs.
+    
+    Example:
+        >>> from pyglsl import FragmentStage
+        >>> glsl_code = FragmentStage(my_fragment_function).compile()
+    """
     def compile(self, is_fragment=True):
         return super().compile(is_fragment=True)
