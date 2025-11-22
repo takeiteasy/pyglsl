@@ -122,3 +122,134 @@ def test_interface_blocks():
     assert "out Outputs {" in glsl
     assert "vec3 v_pos;" in glsl
     assert "outputs.v_pos = a_pos;" in glsl
+
+def test_break_statement():
+    """Test that break statement works in loops."""
+    def shader():
+        for i in range(10):
+            if i == 5:
+                break
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "break;" in glsl, f"Expected 'break;' in:\n{glsl}"
+
+def test_continue_statement():
+    """Test that continue statement works in loops."""
+    def shader():
+        for i in range(10):
+            if i == 3:
+                continue
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "continue;" in glsl, f"Expected 'continue;' in:\n{glsl}"
+
+def test_break_continue_together():
+    """Test break and continue in same loop."""
+    def shader():
+        for i in range(10):
+            if i == 5:
+                break
+            if i == 3:
+                continue
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "break;" in glsl
+    assert "continue;" in glsl
+
+def test_dynamic_range_variable():
+    """Test for loop with variable end value."""
+    def shader():
+        n = int(10)
+        for i in range(n):
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "for (int i = 0; i < n; i++) {" in glsl, f"Expected 'for (int i = 0; i < n; i++) {{' in:\n{glsl}"
+
+def test_dynamic_range_two_args():
+    """Test for loop with variable start and end."""
+    def shader():
+        start = int(2)
+        end = int(10)
+        for i in range(start, end):
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "for (int i = start; i < end; i++) {" in glsl, f"Expected 'for (int i = start; i < end; i++) {{' in:\n{glsl}"
+
+def test_dynamic_range_with_step():
+    """Test for loop with constant step."""
+    def shader():
+        for i in range(0, 10, 2):
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "for (int i = 0; i < 10; i += 2) {" in glsl, f"Expected 'for (int i = 0; i < 10; i += 2) {{' in:\n{glsl}"
+
+def test_dynamic_range_variable_step():
+    """Test for loop with variable step."""
+    def shader():
+        step = int(2)
+        for i in range(0, 10, step):
+            a = int(i)
+    
+    glsl = compile_function(shader)
+    assert "for (int i = 0; i < 10; i += step) {" in glsl, f"Expected 'for (int i = 0; i < 10; i += step) {{' in:\n{glsl}"
+
+def test_nested_loops_with_break():
+    """Test nested loops with break statements."""
+    def shader():
+        for i in range(10):
+            for j in range(5):
+                if j == 2:
+                    break
+    
+    glsl = compile_function(shader)
+    assert "for (int i = 0; i < 10; i++) {" in glsl
+    assert "for (int j = 0; j < 5; j++) {" in glsl
+    assert "break;" in glsl
+
+def test_array_literal_float():
+    """Test array initialization with float literals."""
+    def shader():
+        arr = [1.0, 2.0, 3.0]
+    
+    glsl = compile_function(shader)
+    assert "float arr[3] = float[3](1.0, 2.0, 3.0);" in glsl, f"Expected array declaration in:\n{glsl}"
+
+def test_array_literal_int():
+    """Test array initialization with int literals."""
+    def shader():
+        arr = [1, 2, 3, 4]
+    
+    glsl = compile_function(shader)
+    assert "int arr[4] = int[4](1, 2, 3, 4);" in glsl, f"Expected array declaration in:\n{glsl}"
+
+def test_array_literal_mixed_becomes_float():
+    """Test that mixed int/float arrays become float[] (GLSL behavior)."""
+    def shader():
+        arr = [1, 2.0, 3]
+    
+    glsl = compile_function(shader)
+    # Should be float array since one element has decimal
+    assert "float arr[3]" in glsl, f"Expected float array in:\n{glsl}"
+    assert "float[3]" in glsl
+
+def test_array_literal_single_element():
+    """Test single-element array."""
+    def shader():
+        arr = [42.0]
+    
+    glsl = compile_function(shader)
+    assert "float arr[1] = float[1](42.0);" in glsl
+
+def test_array_literal_empty_raises_error():
+    """Test that empty arrays raise an error."""
+    def shader():
+        arr = []
+    
+    with pytest.raises(ValueError, match="empty array literals"):
+        compile_function(shader)

@@ -215,6 +215,38 @@ class GlslVisitor(ast.NodeVisitor):
         if len(node.targets) != 1:
             raise ValueError('multiple assignment targets not allowed', node)
         target = node.targets[0]
+        
+        # Check for array literal initialization
+        if allow_decl and isinstance(node.value, ast.List):
+            if not isinstance(target, ast.Name):
+                raise ValueError('array literals can only be assigned to simple variables')
+            if len(node.value.elts) == 0:
+                raise ValueError('empty array literals are not supported in GLSL')
+            
+            # Infer element type from first element
+            # In GLSL, array literals with mixed int/float will be float[]
+            first_elem = node.value.elts[0]
+            elem_code = self.visit(first_elem).one()
+            
+            # Simple type inference: if any element looks like a float, use float
+            # Otherwise use int
+            elem_type = 'float' if '.' in elem_code else 'int'
+            
+            # Check all elements for float presence (matching GLSL behavior)
+            for elt in node.value.elts:
+                elt_code = self.visit(elt).one()
+                if '.' in elt_code:
+                    elem_type = 'float'
+                    break
+            
+            array_size = len(node.value.elts)
+            var_name = target.id
+            elements = ', '.join(self.visit(elt).one() for elt in node.value.elts)
+            
+            # GLSL array constructor syntax: type name[size] = type[size](elements)
+            return GlslCode('{} {}[{}] = {}[{}]({})'.format(
+                elem_type, var_name, array_size, elem_type, array_size, elements))
+        
         if allow_decl and self.is_var_decl(node):
             return self.make_var_decl(node)
         adecl = self.get_array_decl(node)
@@ -242,6 +274,19 @@ class GlslVisitor(ast.NodeVisitor):
 
     def visit_Str(self, node):
         return GlslCode()
+
+    def visit_List(self, node):
+        """Handle list literals in non-declaration contexts.
+        
+        For array declarations, see visit_Assign which handles the full syntax.
+        This is for cases where a list might appear in other contexts.
+        """
+        # Lists in GLSL are only valid as array initializers in declarations
+        # In other contexts, they're not supported
+        raise NotImplementedError(
+            "List literals are only supported in array variable declarations. "
+            "Use array assignment like 'arr = [1.0, 2.0, 3.0]' at declaration time."
+        )
 
     def visit_Call(self, node):
         args = (self.visit(arg).one() for arg in node.args)
@@ -312,23 +357,33 @@ class GlslVisitor(ast.NodeVisitor):
         if not isinstance(itr, ast.Call) or itr.func.id != 'range':
             raise NotImplementedError('only range() for loops are supported')
         
-        # Handle both Num (old) and Constant (new)
-        if len(itr.args) != 1:
-             raise NotImplementedError('only 0..n for loops are supported')
-        
-        arg = itr.args[0]
-        if isinstance(arg, ast.Num):
-            end_val = str(arg.n)
-        elif isinstance(arg, ast.Constant) and isinstance(arg.value, (int, float)):
-            end_val = str(arg.value)
+        # Parse range arguments: range(end), range(start, end), or range(start, end, step)
+        if len(itr.args) == 1:
+            start = '0'
+            end = self.visit(itr.args[0]).one()
+            step = '1'
+        elif len(itr.args) == 2:
+            start = self.visit(itr.args[0]).one()
+            end = self.visit(itr.args[1]).one()
+            step = '1'
+        elif len(itr.args) == 3:
+            start = self.visit(itr.args[0]).one()
+            end = self.visit(itr.args[1]).one()
+            step = self.visit(itr.args[2]).one()
         else:
-            raise NotImplementedError('only 0..n for loops are supported')
-
-        end = end_val # We already got the string value
+            raise NotImplementedError('range() requires 1-3 arguments')
+        
         var = self.visit(node.target).one()
         code = GlslCode()
-        code('for (int {var} = 0; {var} < {end}; {var}++) {{'.format(var=var,
-                                                                     end=end))
+        
+        # Generate for loop - use += for non-unit steps
+        if step == '1':
+            code('for (int {var} = {start}; {var} < {end}; {var}++) {{'.format(
+                var=var, start=start, end=end))
+        else:
+            code('for (int {var} = {start}; {var} < {end}; {var} += {step}) {{'.format(
+                var=var, start=start, end=end, step=step))
+        
         for child in node.body:
             code.append_block(self.visit(child))
         code('}')

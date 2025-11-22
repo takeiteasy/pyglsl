@@ -12,12 +12,6 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 > **IMPORTANT**
 > Shaders are only translated, not compiled. This is to avoid dependency issues and makes it more portable. There is also no static analysis beyond what is valid Python. Errors will have to be deciphered after compiling or runtime.
 
-> **WARNING**
-> Not every aspect of Python is supported when writing a shader. For example, loops are limited to `for i in range()` type loops.
-
-> **TIP**
-> It is a good idea to keep your pyglsl shader code in a separate file and importing with `from pyglsl.glsl import *`. This will avoid naming conflicts as `pyglsl.glsl` contains the builtin types + functions from GLSL.
-
 > **WARNING: Namespace Pollution**
 > Using `from pyglsl.glsl import *` shadows Python built-in functions: `abs`, `min`, `max`, `round`, `pow`, `all`, `any`, `int`, `float`, and `bool`. After importing, these names will refer to GLSL type proxies instead of Python functions.
 >
@@ -35,6 +29,50 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 > from pyglsl.glsl import *
 > ```
 
+## Supported Features
+
+### Control Flow
+- **Conditionals**: `if`, `elif`, `else`
+- **Loops**: `for i in range()` with support for:
+  - `range(n)` - variable end value
+  - `range(start, end)` - variable start and end
+  - `range(start, end, step)` - with optional step
+  - `break` and `continue` statements
+- **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- **Boolean operators**: `and` (`&&`), `or` (`||`), `not` (`!`)
+
+### Data Types
+- **Scalars**: `int`, `float`, `bool`
+- **Vectors**: `vec2`, `vec3`, `vec4`, `ivec2`, `ivec3`, `ivec4`, `bvec2`, `bvec3`, `bvec4`
+- **Matrices**: `mat2`, `mat3`, `mat4`
+- **Arrays**: 
+  - Traditional syntax: `arr = Array3[float]()`
+  - List literals with automatic type inference: `arr = [1.0, 2.0, 3.0]`
+  - Mixed int/float arrays become `float[]` (GLSL behavior)
+
+### Functions
+- Function definitions with type hints
+- Return statements
+- Library functions (passed via `library=` parameter)
+- GLSL built-in functions: `normalize`, `dot`, `cross`, `length`, `mix`, etc.
+
+### Operators
+- Arithmetic: `+`, `-`, `*`, `/`, `%`
+- Augmented assignment: `+=`, `-=`, `*=`, `/=`
+- Matrix multiplication: `@` or `*`
+- Swizzling: `vec.xyz`, `vec.xxyy`
+- Subscripting: `arr[i]`, `mat[row][col]`
+
+### Not Supported
+- `while` loops (use `for` instead)
+- `with` statements
+- `try`/`except` blocks
+- Lambda functions
+- List/dict/set comprehensions
+- Classes (except interface blocks)
+- Default/keyword arguments (except in interface blocks)
+
+## Full Example
 
 ### Python input
 
