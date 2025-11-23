@@ -215,3 +215,138 @@ class FragmentStage(Stage):
     """
     def compile(self, is_fragment=True):
         return super().compile(is_fragment=True)
+
+class GeometryStage(Stage):
+    """Geometry shader compilation stage.
+    
+    Handles geometry shader specifics including layout qualifiers,
+    primitive input/output, and vertex emission via yield statements.
+    
+    Geometry shaders must be decorated with @geometry_shader_layout to
+    specify input primitive, output primitive, and max vertices.
+    
+    Example:
+        >>> from typing import Sequence, Iterator
+        >>> from pyglsl.glsl import geometry_shader_layout, triangles, triangle_strip
+        >>> @geometry_shader_layout(input_primitive=triangles,
+        ...                          output_primitive=triangle_strip,
+        ...                          max_vertices=3)
+        ... def geom_shader(gl_in: Sequence[GlGsIn], vs_out: Sequence[VsOut]) -> Iterator[GsOut]:
+        ...     for i in range(3):
+        ...         yield GsOut(gl_position=gl_in[i].gl_Position, color=vs_out[i].color)
+        ...     EndPrimitive()
+    """
+    def __init__(self,
+                 func: Callable[..., Any],
+                 version: Optional[Union[str, int]] = "330 core",
+                 library: Optional[List[Callable[..., Any]]] = []):
+        super().__init__(func, version, library)
+        
+        # Extract geometry shader layout metadata from decorator
+        if not hasattr(func, '_geometry_layout'):
+            raise ValueError(
+                'Geometry shader must be decorated with @geometry_shader_layout. '
+                'Example: @geometry_shader_layout(input_primitive=triangles, '
+                'output_primitive=triangle_strip, max_vertices=3)'
+            )
+        
+        self.layout = func._geometry_layout
+        
+    def compile(self):
+        """Compile geometry shader with layout qualifiers."""
+        from typing import get_origin, get_args
+        
+        lines = [f"#version {self.version}"]
+        
+        # Generate layout qualifiers
+        input_prim = self.layout['input_primitive'].__name__
+        output_prim = self.layout['output_primitive'].__name__
+        max_verts = self.layout['max_vertices']
+        
+        lines.append(f"layout({input_prim}) in;")
+        lines.append(f"layout({output_prim}, max_vertices = {max_verts}) out;")
+        lines.append("")  # Blank line for readability
+        
+        visitor = GlslVisitor()
+        
+        # Handle input parameters (typically Sequence[Type] for arrays)
+        for name, ptype in sorted(self.params.items()):
+            origin = get_origin(ptype)
+            
+            # Check if this is a Sequence type (geometry shader array input)
+            if origin is not None:
+                # Handle typing.Sequence[Type]
+                if hasattr(origin, '__name__') and origin.__name__ == 'Sequence':
+                    # Get the element type
+                    args = get_args(ptype)
+                    if args:
+                        element_type = args[0]
+                        
+                        # Special handling for GlGsIn - it's the built-in gl_in array
+                        if element_type.__name__ == 'GlGsIn':
+                            # gl_in is automatically available, don't declare it
+                            continue
+                        
+                        # For other sequence types, declare as input array
+                        lines += element_type.declare_input_block(instance_name=name, array=True)
+                    else:
+                        raise ValueError(f'Sequence type hint for {name} must have element type')
+                else:
+                    # Other generic types - try to handle as regular input
+                    lines += ptype.declare_input_block(instance_name=name)
+            else:
+                # Non-generic type - regular input
+                lines += ptype.declare_input_block(instance_name=name)
+        
+        # Process the function AST
+        node = self.root.body[0]
+        if not isinstance(node, ast.FunctionDef):
+            raise TypeError('input must be an ast.FunctionDef', node)
+        
+        node.name = "main"
+        node.args.args = []
+        node.returns = None
+        
+        # Rewrite return statements (even though geometry shaders use yield, 
+        # there might be early returns)
+        if self.return_type is not None:
+            # For geometry shaders, return type should be Iterator[OutputType]
+            # Extract the actual output type
+            from typing import get_origin, get_args
+            ret_origin = get_origin(self.return_type)
+            if ret_origin is not None:
+                ret_args = get_args(self.return_type)
+                if ret_args:
+                    actual_return_type = ret_args[0]
+                else:
+                    actual_return_type = self.return_type
+            else:
+                actual_return_type = self.return_type
+            
+            node = _RewriteReturn(actual_return_type).visit(node)
+            ast.fix_missing_locations(node)
+        
+        # Rename built-in variables
+        node = _Renamer(GLSL_BUILTIN_RENAMES).visit(node)
+        
+        # For geometry shaders, we don't remove parameter name prefixes
+        # because we access arrays like gl_in[i] and vs_out[i]
+        
+        # Declare output block
+        if self.return_type is not None:
+            from typing import get_origin, get_args
+            ret_origin = get_origin(self.return_type)
+            if ret_origin is not None:
+                ret_args = get_args(self.return_type)
+                if ret_args:
+                    actual_output = ret_args[0]
+                    lines += actual_output.declare_output_block()
+            elif self.return_type is not None:
+                lines += self.return_type.declare_output_block()
+        
+        # Include library functions
+        if self.library is not None:
+            for f in self.library:
+                lines.extend(GlslVisitor().visit(parse(f)).lines)
+        
+        return '\n'.join(lines + visitor.visit(self.root).lines)

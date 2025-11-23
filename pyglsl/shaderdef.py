@@ -18,17 +18,30 @@
 
 from dataclasses import dataclass, field
 from typing import Callable, Any, Optional, List, Union
-from .stage import Stage
+from .stage import Stage, GeometryStage
 
 @dataclass
 class ShaderDef:
     vertex_shader: Callable[..., Any]
     fragment_shader: Callable[..., Any]
+    geometry_shader: Optional[Callable[..., Any]] = None
     version: Optional[Union[str, int]] = "330 core"
     vertex_functions: Optional[List[Callable[..., Any]]] = field(default_factory=list)
+    geometry_functions: Optional[List[Callable[..., Any]]] = field(default_factory=list)
     fragment_functions: Optional[List[Callable[..., Any]]] = field(default_factory=list)
 
     def compile(self):
+        """Compile vertex, optional geometry, and fragment shaders.
+        
+        Returns:
+            tuple: (vertex_glsl, fragment_glsl) if no geometry shader,
+                   (vertex_glsl, geometry_glsl, fragment_glsl) if geometry shader present
+        """
         v = Stage(self.vertex_shader, self.version, self.vertex_functions)
         f = Stage(self.fragment_shader, self.version, self.fragment_functions)
-        return v.compile(), f.compile(is_fragment=True)
+        
+        if self.geometry_shader is not None:
+            g = GeometryStage(self.geometry_shader, self.version, self.geometry_functions)
+            return v.compile(), g.compile(), f.compile(is_fragment=True)
+        else:
+            return v.compile(), f.compile(is_fragment=True)

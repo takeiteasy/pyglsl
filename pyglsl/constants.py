@@ -32,6 +32,12 @@ GLSL_BUILTIN_RENAMES = {
     'gl_pointsize': 'gl_PointSize',
     'gl_vertexid': 'gl_VertexID',
     'gl_instanceid': 'gl_InstanceID',
+    # Geometry shader built-ins
+    'gl_primitiveid': 'gl_PrimitiveID',
+    'gl_primitiveidin': 'gl_PrimitiveIDIn',
+    'gl_invocationid': 'gl_InvocationID',
+    'gl_layer': 'gl_Layer',
+    'gl_viewportindex': 'gl_ViewportIndex',
 }
 
 # GLSL type names (for variable declaration detection)

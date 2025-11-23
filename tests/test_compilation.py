@@ -1,6 +1,6 @@
 import pytest
 from pyglsl.glsl import *
-from pyglsl.stage import VertexStage, FragmentStage
+from pyglsl.stage import VertexStage, FragmentStage, GeometryStage
 
 def compile_function(func, stage_type=VertexStage):
     stage = stage_type(func)
@@ -98,7 +98,6 @@ def test_equality():
     assert "if (1 == 2) {" in glsl, f"Expected 'if (1 == 2) {{' in:\n{glsl}"
 
 def test_interface_blocks():
-    from pyglsl.interface import UniformBlock, AttributeBlock, ShaderInterface
     
     class Uniforms(UniformBlock):
         u_time = float()
@@ -324,3 +323,137 @@ def test_list_comp_with_expression():
     glsl = compile_function(shader)
     assert "int squares[8]" in glsl
     assert "squares[i] = (i * i);" in glsl
+
+# ==================== TESTS FOR GEOMETRY SHADERS ====================
+
+def test_geometry_shader_basic():
+    """Test basic geometry shader with layout qualifiers."""
+    from typing import Sequence, Iterator
+    from pyglsl.glsl import geometry_shader_layout, triangles, triangle_strip, EmitVertex, EndPrimitive, GlGsIn
+    
+    class VsOut(ShaderInterface):
+        color = vec4()
+    
+    class GsOut(ShaderInterface):
+        gl_Position = vec4()
+        color = vec4()
+    
+    @geometry_shader_layout(input_primitive=triangles,
+                            output_primitive=triangle_strip,
+                            max_vertices=3)
+    def geom_shader(gl_in: Sequence[GlGsIn], vs_out: Sequence[VsOut]) -> Iterator[GsOut]:
+        for i in range(3):
+            yield GsOut(gl_Position=gl_in[i].gl_Position, color=vs_out[i].color)
+        EndPrimitive()
+    
+    stage = GeometryStage(geom_shader)
+    glsl = stage.compile()
+    
+    # Verify layout qualifiers
+    assert "layout(triangles) in;" in glsl, f"Expected layout(triangles) in:\\n{glsl}"
+    assert "layout(triangle_strip, max_vertices = 3) out;" in glsl
+    
+    # Verify input/output blocks
+    assert "in VsOut {" in glsl
+    assert "out GsOut {" in glsl
+    
+    # Verify EmitVertex and EndPrimitive
+    assert "EmitVertex()" in glsl
+    assert "EndPrimitive()" in glsl
+    
+    # Verify gl_Position assignments
+    assert "gl_Position = gl_in[i].gl_Position;" in glsl or "gl_Position = gl_in[0].gl_Position;" in glsl
+
+def test_geometry_shader_with_uniforms():
+    """Test geometry shader with uniform blocks."""
+    from typing import Sequence, Iterator
+    from pyglsl.glsl import geometry_shader_layout, triangles, triangle_strip, EndPrimitive, GlGsIn
+    
+    class Params(UniformBlock):
+        scale = float()
+    
+    class VsOut(ShaderInterface):
+        normal = vec3()
+    
+    class GsOut(ShaderInterface):
+        gl_Position = vec4()
+        scaled_normal = vec3()
+    
+    @geometry_shader_layout(input_primitive=triangles,
+                            output_primitive=triangle_strip,
+                            max_vertices=3)
+    def geom_shader(params: Params, gl_in: Sequence[GlGsIn], vs_out: Sequence[VsOut]) -> Iterator[GsOut]:
+        yield GsOut(gl_Position=gl_in[0].gl_Position,
+                    scaled_normal=vs_out[0].normal * params.scale)
+        yield GsOut(gl_Position=gl_in[1].gl_Position,
+                    scaled_normal=vs_out[1].normal * params.scale)
+        yield GsOut(gl_Position=gl_in[2].gl_Position,
+                    scaled_normal=vs_out[2].normal * params.scale)
+        EndPrimitive()
+    
+    stage = GeometryStage(geom_shader)
+    glsl = stage.compile()
+    
+    # Verify uniform declaration
+    assert "uniform float scale;" in glsl, f"Expected uniform in:\\n{glsl}"
+    
+    # Verify interface blocks
+    assert "in VsOut {" in glsl
+    assert "out GsOut {" in glsl
+    
+    # Verify EmitVertex calls (should be 3)
+    assert glsl.count("EmitVertex()") == 3
+    
+    # Verify uniform usage
+    assert "(vs_out[0].normal * scale)" in glsl or "(vs_out[0].normal * params.scale)" in glsl
+
+def test_geometry_shader_points_output():
+    """Test geometry shader with points output."""
+    from typing import Sequence, Iterator
+    from pyglsl.glsl import geometry_shader_layout, triangles, points, GlGsIn
+    
+    class GsOut(ShaderInterface):
+        gl_Position = vec4()
+        size = float()
+    
+    @geometry_shader_layout(input_primitive=triangles,
+                            output_primitive=points,
+                            max_vertices=1)
+    def geom_shader(gl_in: Sequence[GlGsIn]) -> Iterator[GsOut]:
+        # Emit centroid
+        center = vec4((gl_in[0].gl_Position + gl_in[1].gl_Position + gl_in[2].gl_Position).xyz / 3.0, 1.0)
+        yield GsOut(gl_Position=center, size=1.0)
+    
+    stage = GeometryStage(geom_shader)
+    glsl = stage.compile()
+    
+    # Verify layout qualifiers for points output
+    assert "layout(triangles) in;" in glsl
+    assert "layout(points, max_vertices = 1) out;" in glsl, f"Expected points layout in:\\n{glsl}"
+
+def test_interpolation_qualifiers():
+    """Test noperspective, flat, and smooth interpolation qualifiers."""
+    from pyglsl.glsl import noperspective, flat, smooth
+    
+    class VsOut(ShaderInterface):
+        barycentric = vec3(noperspective)
+        instanceID = int(flat)
+        normal = vec3(smooth)
+        position = vec4()  # No qualifier (default)
+    
+    def shader() -> VsOut:
+        return VsOut(
+            barycentric=vec3(1.0, 0.0, 0.0),
+            instanceID=int(0),
+            normal=vec3(0.0, 1.0, 0.0),
+            position=vec4(0.0)
+        )
+    
+    glsl = compile_function(shader)
+    
+    # Verify interpolation qualifiers are present
+    assert "noperspective vec3 barycentric;" in glsl, f"Expected 'noperspective vec3 barycentric;' in:\\n{glsl}"
+    assert "flat int instanceID;" in glsl, f"Expected 'flat int instanceID;' in:\\n{glsl}"
+    assert "smooth vec3 normal;" in glsl, f"Expected 'smooth vec3 normal;' in:\\n{glsl}"
+    # No qualifier for position
+    assert "vec4 position;" in glsl and "noperspective vec4 position;" not in glsl

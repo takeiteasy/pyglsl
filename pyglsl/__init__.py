@@ -16,5 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .stage import Stage, VertexStage, FragmentStage
+from .stage import VertexStage, FragmentStage, GeometryStage
 from .shaderdef import ShaderDef
+
+__all__ = [
+    'VertexStage',
+    'FragmentStage',
+    'GeometryStage',
+    'ShaderDef',
+]

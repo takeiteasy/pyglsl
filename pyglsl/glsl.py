@@ -89,6 +89,17 @@ __all__ = [
     # Utility functions
     'isnan', 'isinf', 'floatBitsToInt', 'intBitsToFloat',
     'packUnorm2x16', 'unpackUnorm2x16',
+    # Geometry shader primitives
+    'points', 'lines', 'lines_adjacency', 'triangles', 'triangles_adjacency',
+    'line_strip', 'triangle_strip',
+    # Geometry shader functions
+    'EmitVertex', 'EndPrimitive',
+    # Geometry shader decorator
+    'geometry_shader_layout',
+    # Geometry shader built-in interface
+    'GlGsIn',
+    # Interpolation qualifiers
+    'noperspective', 'flat', 'smooth',
 ]
 
 bool = GlslType
@@ -402,3 +413,90 @@ def packUnorm2x16(*args, **kwargs):
 
 def unpackUnorm2x16(*args, **kwargs):
     pass
+
+class points(object):
+    pass
+
+class lines(object):
+    pass
+
+class lines_adjacency(object):
+    pass
+
+class triangles(object):
+    pass
+
+class triangles_adjacency(object):
+    pass
+
+class line_strip(object):
+    pass
+
+class triangle_strip(object):
+    pass
+
+def EmitVertex():
+    pass
+
+def EndPrimitive():
+    pass
+
+def geometry_shader_layout(input_primitive, output_primitive, max_vertices):
+    """Decorator to specify geometry shader layout qualifiers.
+    
+    Args:
+        input_primitive: Input primitive type (points, lines, triangles, etc.)
+        output_primitive: Output primitive type (points, line_strip, triangle_strip)
+        max_vertices: Maximum number of vertices the shader can output
+    
+    Example:
+        >>> @geometry_shader_layout(input_primitive=triangles,
+        ...                          output_primitive=triangle_strip,
+        ...                          max_vertices=3)
+        ... def geom_shader(...) -> Iterator[Output]:
+        ...     yield Output(...)
+    """
+    def decorator(func):
+        # Store metadata on the function for later retrieval during compilation
+        func._geometry_layout = {
+            'input_primitive': input_primitive,
+            'output_primitive': output_primitive,
+            'max_vertices': max_vertices
+        }
+        return func
+    return decorator
+
+# Interpolation qualifiers for interface block members
+class noperspective(object):
+    """No perspective correction interpolation qualifier.
+    
+    Use in interface blocks: member = vec3(noperspective)
+    Generates: noperspective vec3 member;
+    """
+    pass
+
+class flat(object):
+    """Flat (no interpolation) qualifier.
+    
+    Use in interface blocks: member = int(flat)
+    Generates: flat int member;
+    """
+    pass
+
+class smooth(object):
+    """Smooth (perspective-correct) interpolation qualifier (default).
+    
+    Use in interface blocks: member = vec3(smooth)
+    Generates: smooth vec3 member;
+    """
+    pass
+
+# Import GlGsIn from interface module (will be defined there)
+# We import it here for convenience so users can do: from pyglsl.glsl import GlGsIn
+# The actual definition is in interface.py to avoid circular imports
+def __getattr__(name):
+    """Lazy import for GlGsIn to avoid circular dependencies."""
+    if name == 'GlGsIn':
+        from .interface import GlGsIn
+        return GlGsIn
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

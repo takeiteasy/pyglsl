@@ -187,7 +187,18 @@ class GlslVisitor(ast.NodeVisitor):
             return False
             
         # Check if the function being called looks like a type constructor
-        func_name = node.value.func.id
+        # Handle both simple names (vec3) and subscripts (Array3[vec2])
+        func_node = node.value.func
+        if isinstance(func_node, ast.Name):
+            func_name = func_node.id
+        elif isinstance(func_node, ast.Subscript):
+            # For Array3[vec2](), get the base name (Array3)
+            if isinstance(func_node.value, ast.Name):
+                func_name = func_node.value.id
+            else:
+                return False
+        else:
+            return False
         
         # Check against known GLSL types or user-defined types (capitalized)
         return func_name in GLSL_BUILTIN_TYPES or (len(func_name) > 0 and func_name[0].isupper())
@@ -203,7 +214,27 @@ class GlslVisitor(ast.NodeVisitor):
 
     def make_var_decl(self, node):
         target = node.targets[0]
-        gtype = node.value.func.id
+        
+        # Extract type name from function (handle both Name and Subscript)
+        func_node = node.value.func
+        if isinstance(func_node, ast.Name):
+            gtype = func_node.id
+        elif isinstance(func_node, ast.Subscript):
+            # For Array3[vec2](), extract as "Array3[vec2]"
+            # We need to convert the subscript to string form
+            if isinstance(func_node.value, ast.Name):
+                base_type = func_node.value.id
+                # Get the subscript expression (element type)
+                if isinstance(func_node.slice, ast.Name):
+                    elem_type = func_node.slice.id
+                else:
+                    elem_type = self.visit(func_node.slice).one()
+                gtype = f"{base_type}[{elem_type}]"
+            else:
+                gtype = self.visit(func_node).one()
+        else:
+            gtype = self.visit(func_node).one()
+        
         return GlslCode('{} {} = {}'.format(gtype,
                                             self.visit(target).one(),
                                             self.visit(node.value).one()))
@@ -396,6 +427,54 @@ class GlslVisitor(ast.NodeVisitor):
 
     def visit_Return(self, node):
         return GlslCode('return {}'.format(self.visit(node.value).one()))
+
+    def visit_Yield(self, node):
+        """Handle yield statements for geometry shader vertex emission.
+        
+        Yield statements in geometry shaders emit vertices. The yielded value
+        (an interface block constructor call) is converted to assignments followed
+        by EmitVertex().
+        
+        Example:
+            yield GsOut(gl_position=pos, color=col)
+        
+        Becomes:
+            gl_Position = pos;
+            gs_out.color = col;
+            EmitVertex();
+        """
+        # Import here to avoid circular dependency
+        from .stage import kwargs_as_assignments
+        
+        if node.value is None:
+            raise ValueError('yield in geometry shader must have a value (interface block)')
+        
+        # The value should be a Call to an interface block constructor
+        if not isinstance(node.value, ast.Call):
+            raise ValueError('yield value must be an interface block constructor call')
+        
+        # Get the interface block type name (will be used for instance name)
+        if isinstance(node.value.func, ast.Name):
+            interface_name = node.value.func.id
+        else:
+            raise ValueError('yield value must be a simple interface block constructor')
+        
+        # Convert to snake_case for instance name
+        from .interface import snake_case
+        instance_name = snake_case(interface_name)
+        
+        # Generate assignments from the keyword arguments
+        # This is similar to how return statements are handled in stage.py
+        code = GlslCode()
+        parent = ast.Name(id=instance_name, ctx=ast.Load())
+        
+        for assignment in kwargs_as_assignments(node.value, parent):
+            code.append_block(self.visit(assignment))
+        
+        # After all assignments, emit the vertex
+        code.append_block(GlslCode('EmitVertex()'))
+        
+        return code
 
     def visit_Expr(self, node):
         return self.visit(node.value)

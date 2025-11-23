@@ -239,3 +239,30 @@ class FragmentShaderOutputBlock(ShaderInterface):
             # incrementing location
             yield member.declare_output(location)
             location += 1
+
+
+class GlGsIn(ShaderInterface):
+    """Built-in geometry shader input interface.
+    
+    Represents the gl_in[] built-in array in geometry shaders, providing
+    access to per-vertex data from the previous shader stage (vertex shader).
+    
+    This class defines the built-in members available in gl_in, primarily
+    gl_Position. Users will typically use this with Sequence[GlGsIn] as a
+    parameter type in geometry shaders.
+    
+    Example:
+        >>> from typing import Sequence
+        >>> @geometry_shader_layout(input_primitive=triangles,
+        ...                          output_primitive=triangle_strip,
+        ...                          max_vertices=3)
+        ... def geom_shader(gl_in: Sequence[GlGsIn], vs_out: Sequence[VsOut]):
+        ...     pos = gl_in[0].gl_Position
+    
+    Note: gl_Position is a special case - it's accessed directly as a member
+    of gl_in elements, not through an instance name.
+    """
+    # This is a special interface - it represents built-in variables
+    # The actual GLSL declaration is handled automatically
+    # We just need this class for type hints
+    pass
