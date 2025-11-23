@@ -216,6 +216,10 @@ class GlslVisitor(ast.NodeVisitor):
             raise ValueError('multiple assignment targets not allowed', node)
         target = node.targets[0]
         
+        # Check for list comprehension initialization
+        if allow_decl and isinstance(node.value, ast.ListComp):
+            return self._handle_list_comp_assign(node)
+        
         # Check for array literal initialization
         if allow_decl and isinstance(node.value, ast.List):
             if not isinstance(target, ast.Name):
@@ -254,6 +258,103 @@ class GlslVisitor(ast.NodeVisitor):
             return adecl
         return GlslCode('{} = {}'.format(self.visit(target).one(),
                                          self.visit(node.value).one()))
+    
+    def _handle_list_comp_assign(self, node):
+        """Handle list comprehension assignment by unrolling to array + loop."""
+        comp = node.value
+        target = node.targets[0]
+        
+        if not isinstance(target, ast.Name):
+            raise ValueError('list comprehensions can only be assigned to simple variables')
+        
+        # Only support single generator
+        if len(comp.generators) != 1:
+            raise NotImplementedError(
+                "List comprehensions with multiple 'for' clauses are not supported"
+            )
+        
+        gen = comp.generators[0]
+        
+        # Only support range() iteration
+        if not (isinstance(gen.iter, ast.Call) and 
+                isinstance(gen.iter.func, ast.Name) and 
+                gen.iter.func.id == 'range'):
+            raise NotImplementedError(
+                "List comprehensions only support 'for x in range(...)' iteration"
+            )
+        
+        # Get loop variable name
+        if not isinstance(gen.target, ast.Name):
+            raise NotImplementedError(
+                "List comprehension loop variable must be a simple name"
+            )
+        
+        loop_var = gen.target.id
+        var_name = target.id
+        
+        # Parse range arguments (same logic as visit_For)
+        range_call = gen.iter
+        if len(range_call.args) == 1:
+            start = '0'
+            end = self.visit(range_call.args[0]).one()
+            step = '1'
+        elif len(range_call.args) == 2:
+            start = self.visit(range_call.args[0]).one()
+            end = self.visit(range_call.args[1]).one()
+            step = '1'
+        elif len(range_call.args) == 3:
+            start = self.visit(range_call.args[0]).one()
+            end = self.visit(range_call.args[1]).one()
+            step = self.visit(range_call.args[2]).one()
+        else:
+            raise NotImplementedError('range() requires 1-3 arguments')
+        
+        # Calculate array size (only works with constant bounds)
+        try:
+            start_val = int(eval(start)) if start != '0' else 0
+            end_val = int(eval(end))
+            step_val = int(eval(step)) if step != '1' else 1
+            
+            if step_val == 1:
+                size = end_val - start_val
+            else:
+                size = (end_val - start_val + step_val - 1) // step_val
+        except:
+            raise NotImplementedError(
+                "List comprehension size must be computable at transpile time. "
+                "Use constant range() arguments."
+            )
+        
+        # Infer element type from expression
+        elem_expr = self.visit(comp.elt).one()
+        # Simple heuristic: check if expression result contains float literals
+        elem_type = 'float' if '.' in elem_expr else 'int'
+        
+        # Generate code: declaration + initialization loop
+        code = GlslCode()
+        code('{} {}[{}]'.format(elem_type, var_name, size))
+        
+        # Generate initialization loop
+        if step == '1':
+            code('for (int {var} = {start}; {var} < {end}; {var}++) {{'.format(
+                var=loop_var, start=start, end=end))
+        else:
+            code('for (int {var} = {start}; {var} < {end}; {var} += {step}) {{'.format(
+                var=loop_var, start=start, end=end, step=step))
+        
+        # Handle if clause (filter)
+        if len(gen.ifs) > 0:
+            # With filter: wrap assignment in if statement
+            if_cond = self.visit(gen.ifs[0]).one()
+            code.append_block(GlslCode('if ({}) {{'.format(if_cond)))
+            code.append_block(GlslCode('    {}[{}] = {}'.format(var_name, loop_var, elem_expr)))
+            code.append_block(GlslCode('}'))
+        else:
+            # No filter: direct assignment
+            code.append_block(GlslCode('{}[{}] = {}'.format(var_name, loop_var, elem_expr)))
+        
+        code('}')
+        return code
 
     def visit_Constant(self, node):
         if isinstance(node.value, bool):
@@ -402,10 +503,12 @@ class GlslVisitor(ast.NodeVisitor):
 
     # Explicit handlers for unsupported constructs with helpful messages
     def visit_While(self, node):
-        raise NotImplementedError(
-            "while loops are not supported in GLSL. "
-            "Use 'for i in range(...)' instead."
-        )
+        """Convert Python while loop to GLSL while loop."""
+        code = GlslCode('while ({}) {{'.format(self.visit(node.test).one()))
+        for child in node.body:
+            code.append_block(self.visit(child))
+        code('}')
+        return code
 
     def visit_With(self, node):
         raise NotImplementedError(
@@ -427,8 +530,8 @@ class GlslVisitor(ast.NodeVisitor):
 
     def visit_ListComp(self, node):
         raise NotImplementedError(
-            "List comprehensions are not supported in GLSL. "
-            "Use explicit for loops instead."
+            "List comprehensions must be used in variable assignments. "
+            "Example: arr = [i * 2 for i in range(10)]"
         )
 
     def visit_DictComp(self, node):

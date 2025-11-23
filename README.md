@@ -5,7 +5,7 @@
 
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
 
-> `pip install pyglsl==0.0.8`
+> `pip install pyglsl==0.1.0`
 
 ## Example
 
@@ -33,10 +33,10 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 
 ### Control Flow
 - **Conditionals**: `if`, `elif`, `else`
-- **Loops**: `for i in range()` with support for:
-  - `range(n)` - variable end value
-  - `range(start, end)` - variable start and end
-  - `range(start, end, step)` - with optional step
+- **Loops**: 
+  - `for i in range()` with support for dynamic parameters
+  - `while condition:` loops
+  - List comprehensions: `[expr for var in range(...)]` (unrolled to loops)
   - `break` and `continue` statements
 - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`
 - **Boolean operators**: `and` (`&&`), `or` (`||`), `not` (`!`)
@@ -63,14 +63,18 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 - Swizzling: `vec.xyz`, `vec.xxyy`
 - Subscripting: `arr[i]`, `mat[row][col]`
 
-### Not Supported
-- `while` loops (use `for` instead)
-- `with` statements
-- `try`/`except` blocks
-- Lambda functions
-- List/dict/set comprehensions
-- Classes (except interface blocks)
-- Default/keyword arguments (except in interface blocks)
+## Known Limitations
+
+### List Comprehensions
+- **Constant Bounds**: `range()` arguments in list comprehensions must be constant expressions computable at transpile time to determine array size.
+- **Full Allocation**: Comprehensions with filters (e.g., `[x for x in range(10) if x > 5]`) still allocate the full array size (10 in this case) because GLSL arrays must have a fixed size. The filtered elements are initialized, but the array length remains static.
+
+### Arrays
+- **Fixed Size**: All arrays must have a size determined at compile time.
+- **No Dynamic Resizing**: `append()`, `pop()`, etc. are not supported.
+
+### Recursion
+- GLSL does not support recursion. Recursive function calls will cause a GLSL compilation error (though pyglsl will transpile them).
 
 ## Full Example
 

@@ -253,3 +253,74 @@ def test_array_literal_empty_raises_error():
     
     with pytest.raises(ValueError, match="empty array literals"):
         compile_function(shader)
+
+# ==================== TESTS FOR WHILE LOOPS ====================
+
+def test_while_loop():
+    """Test basic while loop."""
+    def shader():
+        i = int(0)
+        while i < 10:
+            i = i + 1
+    
+    glsl = compile_function(shader)
+    assert "while (i < 10) {" in glsl, f"Expected 'while (i < 10) {{' in:\n{glsl}"
+    assert "i = (i + 1);" in glsl
+
+def test_while_with_break():
+    """Test while loop with break."""
+    def shader():
+        i = int(0)
+        while True:
+            if i >= 10:
+                break
+            i = i + 1
+    
+    glsl = compile_function(shader)
+    assert "while (true) {" in glsl, f"Expected 'while (true) {{' in:\n{glsl}"
+    assert "break;" in glsl
+
+def test_while_with_continue():
+    """Test while loop with continue."""
+    def shader():
+        i = int(0)
+        while i < 10:
+            i = i + 1
+            if i % 2 == 0:
+                continue
+            x = float(i)
+    
+    glsl = compile_function(shader)
+    assert "while (i < 10) {" in glsl
+    assert "continue;" in glsl
+
+# ==================== TESTS FOR LIST COMPREHENSIONS ====================
+
+def test_list_comp_simple():
+    """Test simple list comprehension."""
+    def shader():
+        arr = [i * 2 for i in range(5)]
+    
+    glsl = compile_function(shader)
+    assert "int arr[5]" in glsl, f"Expected 'int arr[5]' in:\n{glsl}"
+    assert "for (int i = 0; i < 5; i++) {" in glsl
+    assert "arr[i] = (i * 2);" in glsl
+
+def test_list_comp_with_filter():
+    """Test list comprehension with if clause."""
+    def shader():
+        arr = [i for i in range(10) if i % 2 == 0]
+    
+    glsl = compile_function(shader)
+    assert "int arr[10]" in glsl, f"Expected 'int arr[10]' in:\n{glsl}"
+    assert "if ((i % 2) == 0) {" in glsl
+    assert "arr[i] = i;" in glsl
+
+def test_list_comp_with_expression():
+    """Test list comprehension with complex expression."""
+    def shader():
+        squares = [i * i for i in range(8)]
+    
+    glsl = compile_function(shader)
+    assert "int squares[8]" in glsl
+    assert "squares[i] = (i * i);" in glsl
