@@ -16,12 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .stage import VertexStage, FragmentStage, GeometryStage
+from .stage import VertexStage, FragmentStage, GeometryStage, TessControlStage, TessEvalStage, ComputeStage
+from .interface import (ShaderInterface, UniformBlock, AttributeBlock,
+                        FragmentShaderOutputBlock)
 from .shaderdef import ShaderDef
+from .types import GlslType, GlslArray, GlslStruct
 
 __all__ = [
     'VertexStage',
     'FragmentStage',
     'GeometryStage',
+    'TessControlStage',
+    'TessEvalStage',
+    'ComputeStage',
     'ShaderDef',
+    'GlslStruct',
 ]

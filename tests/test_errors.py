@@ -3,25 +3,6 @@ import pytest
 from pyglsl.stage import VertexStage
 
 
-def test_while_loop_error():
-    """while loops should raise informative error."""
-    def shader():
-        i = int(0)
-        while i < 10:
-            i += 1
-    
-    with pytest.raises(NotImplementedError, match="while loops are not supported"):
-        VertexStage(shader).compile()
-
-def test_list_comprehension_error():
-    """List comprehensions should raise informative error."""
-    def shader():
-        values = [i * 2 for i in range(10)]
-    
-    with pytest.raises(NotImplementedError, match="List comprehensions are not supported"):
-        VertexStage(shader).compile()
-
-
 def test_with_statement_error():
     """'with' statements should raise informative error."""
     def shader():

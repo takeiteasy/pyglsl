@@ -19,7 +19,7 @@
 import ast
 from inspect import getsource
 from typing import Generator
-from .types import ArraySpec
+from .types import ArraySpec, GlslStruct
 from .constants import GLSL_INDENT, GLSL_STATEMENT_TERMINATORS, GLSL_BUILTIN_TYPES
 
 class GlslCode:
@@ -98,6 +98,130 @@ def op_symbol(op_node: ast.AST) -> str:
         ast.IsNot: '!='
     }
     return ops[op_node.__class__]
+
+
+class MultipleReturnTransformer(ast.NodeTransformer):
+    """Transform functions with multiple return statements to use a temp variable.
+    
+    GLSL doesn't handle multiple return statements well (implementation-defined behavior).
+    This transformer converts functions like:
+    
+        def foo(x: float) -> float:
+            if x < 0.0:
+                return float(0.0)
+            return x
+    
+    Into the equivalent of:
+    
+        def foo(x: float) -> float:
+            _return_value = float(0.0)  # Initialize with default
+            if x < 0.0:
+                _return_value = float(0.0)
+            else:
+                _return_value = x
+            return _return_value
+    """
+    
+    def __init__(self, return_type_str='void'):
+        self.return_type_str = return_type_str
+        self.return_count = 0
+        self.has_return_value = return_type_str != 'void'
+        
+    def visit_FunctionDef(self, node):
+        """Transform function with multiple returns."""
+        # First pass: count return statements
+        self.return_count = self._count_returns(node)
+        
+        # If only one or zero returns, no transformation needed
+        if self.return_count <= 1:
+            return node
+            
+        # Transform the function body
+        if self.has_return_value:
+            # Create temporary variable declaration at start
+            temp_var = ast.Assign(
+                targets=[ast.Name(id='_return_value', ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id=self.return_type_str, ctx=ast.Load()),
+                    args=[],
+                    keywords=[]
+                )
+            )
+            ast.copy_location(temp_var, node)
+            
+            # Transform all return statements to assignments
+            new_body = [temp_var]
+            new_body.extend(self._transform_body(node.body))
+            
+            # Add final return statement
+            final_return = ast.Return(
+                value=ast.Name(id='_return_value', ctx=ast.Load())
+            )
+            ast.copy_location(final_return, node)
+            new_body.append(final_return)
+            
+            node.body = new_body
+        else:
+            # For void functions, just remove return values
+            node.body = self._transform_body(node.body)
+            
+        ast.fix_missing_locations(node)
+        return node
+    
+    def _count_returns(self, node):
+        """Count number of return statements in a node."""
+        count = 0
+        for child in ast.walk(node):
+            if isinstance(child, ast.Return):
+                count += 1
+        return count
+    
+    def _transform_body(self, body):
+        """Transform body statements, converting returns to assignments."""
+        new_body = []
+        for stmt in body:
+            new_stmt = self._transform_statement(stmt)
+            if isinstance(new_stmt, list):
+                new_body.extend(new_stmt)
+            else:
+                new_body.append(new_stmt)
+        return new_body
+    
+    def _transform_statement(self, stmt):
+        """Transform a single statement."""
+        if isinstance(stmt, ast.Return):
+            if self.has_return_value and stmt.value is not None:
+                # Convert return expr to _return_value = expr
+                assignment = ast.Assign(
+                    targets=[ast.Name(id='_return_value', ctx=ast.Store())],
+                    value=stmt.value
+                )
+                ast.copy_location(assignment, stmt)
+                return assignment
+            else:
+                # For void returns or void functions, keep as empty return or pass
+                return ast.Pass()
+        elif isinstance(stmt, ast.If):
+            # Recursively transform if/else bodies
+            stmt.body = self._transform_body(stmt.body)
+            stmt.orelse = self._transform_body(stmt.orelse)
+            return stmt
+        elif isinstance(stmt, ast.For):
+            # Recursively transform loop body
+            stmt.body = self._transform_body(stmt.body)
+            if hasattr(stmt, 'orelse'):
+                stmt.orelse = self._transform_body(stmt.orelse)
+            return stmt
+        elif isinstance(stmt, ast.While):
+            # Recursively transform while body
+            stmt.body = self._transform_body(stmt.body)
+            if hasattr(stmt, 'orelse'):
+                stmt.orelse = self._transform_body(stmt.orelse)
+            return stmt
+        else:
+            # Other statements unchanged
+            return stmt
+
 
 class GlslVisitor(ast.NodeVisitor):
     """AST visitor that translates Python code to GLSL.
@@ -421,8 +545,22 @@ class GlslVisitor(ast.NodeVisitor):
         )
 
     def visit_Call(self, node):
-        args = (self.visit(arg).one() for arg in node.args)
         name = self.visit(node.func).one()
+        
+        # Handle struct constructor calls with keyword arguments
+        if len(node.keywords) > 0 and isinstance(node.func, ast.Name):
+            # This might be a struct constructor
+            # Check if the name starts with uppercase (struct naming convention)
+            if node.func.id[0].isupper():
+                # Convert keyword arguments to positional based on struct member order
+                # For now, we'll use keyword names directly in GLSL struct constructor syntax
+                args_list = []
+                for kw in node.keywords:
+                    args_list.append(self.visit(kw.value).one())
+                return GlslCode('{}({})'.format(name, ', '.join(args_list)))
+        
+        # Regular function call with positional arguments
+        args = (self.visit(arg).one() for arg in node.args)
         return GlslCode('{}({})'.format(name, ', '.join(args)))
 
     def visit_Return(self, node):
@@ -656,5 +794,24 @@ def dedent(lines: list[str]) -> Generator[str, None, None]:
             else:
                 yield line[strip_len:]
 
-def parse(func):
-    return ast.parse('\n'.join(dedent(getsource(func).splitlines())))
+def parse(func, return_type=None):
+    """Parse a function and optionally apply multiple return transformation.
+    
+    Args:
+        func: Function to parse
+        return_type: Optional GLSL return type string (e.g., 'vec4', 'float')
+                    If provided, applies MultipleReturnTransformer
+    
+    Returns:
+        Parsed and potentially transformed AST
+    """
+    tree = ast.parse('\n'.join(dedent(getsource(func).splitlines())))
+    
+    # Apply multiple return transformer if return type is provided
+    if return_type is not None and return_type != 'void':
+        transformer = MultipleReturnTransformer(return_type)
+        tree = transformer.visit(tree)
+        ast.fix_missing_locations(tree)
+    
+    return tree
+

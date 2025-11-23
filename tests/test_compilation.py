@@ -452,8 +452,100 @@ def test_interpolation_qualifiers():
     glsl = compile_function(shader)
     
     # Verify interpolation qualifiers are present
-    assert "noperspective vec3 barycentric;" in glsl, f"Expected 'noperspective vec3 barycentric;' in:\\n{glsl}"
-    assert "flat int instanceID;" in glsl, f"Expected 'flat int instanceID;' in:\\n{glsl}"
-    assert "smooth vec3 normal;" in glsl, f"Expected 'smooth vec3 normal;' in:\\n{glsl}"
+    assert "noperspective vec3 barycentric;" in glsl, f"Expected 'noperspective vec3 barycentric;' in:\n{glsl}"
+    assert "flat int instanceID;" in glsl, f"Expected 'flat int instanceID;' in:\n{glsl}"
+    assert "smooth vec3 normal;" in glsl, f"Expected 'smooth vec3 normal;' in:\n{glsl}"
     # No qualifier for position
     assert "vec4 position;" in glsl and "noperspective vec4 position;" not in glsl
+
+# ==================== TESTS FOR STRUCT SUPPORT ====================
+
+# Define structs at module level so inspect.getsource() can find them
+class Material(GlslStruct):
+    ambient = vec3()
+    diffuse = vec3()
+    specular = vec3()
+    shininess = float()
+
+class Light(GlslStruct):
+    position = vec3()
+    color = vec3()
+    intensity = float()
+
+class Point(GlslStruct):
+    x = float()
+    y = float()
+
+class Color(GlslStruct):
+    r = float()
+    g = float()
+    b = float()
+
+def test_struct_declaration():
+    """Test that struct definitions generate correct GLSL struct declarations."""
+    
+    def shader():
+        mat = Material(
+            ambient=vec3(0.2),
+            diffuse=vec3(0.8),
+            specular=vec3(1.0),
+            shininess=float(32.0)
+        )
+        result = vec4(mat.ambient, 1.0)
+    
+    glsl = compile_function(shader)
+    
+    # Check struct declaration
+    assert "struct Material {" in glsl, f"Expected 'struct Material {{' in:\n{glsl}"
+    assert "vec3 ambient;" in glsl, f"Expected 'vec3 ambient;' in:\n{glsl}"
+    assert "vec3 diffuse;" in glsl, f"Expected 'vec3 diffuse;' in:\n{glsl}"
+    assert "vec3 specular;" in glsl, f"Expected 'vec3 specular;' in:\n{glsl}"
+    assert "float shininess;" in glsl, f"Expected 'float shininess;' in:\n{glsl}"
+    assert "};" in glsl, f"Expected '}};' in:\n{glsl}"
+    
+    # Check struct instantiation
+    assert "Material mat = Material(" in glsl, f"Expected struct instantiation in:\n{glsl}"
+
+def test_struct_instantiation():
+    """Test struct constructor calls generate correct GLSL."""
+    
+    def shader():
+        light = Light(
+            position=vec3(0.0, 5.0, 0.0),
+            color=vec3(1.0, 1.0, 1.0),
+            intensity=float(1.5)
+        )
+        result = float(light.intensity)
+    
+    glsl = compile_function(shader)
+    assert "Light light = Light(vec3(0.0, 5.0, 0.0), vec3(1.0, 1.0, 1.0), float(1.5))" in glsl, \
+        f"Expected struct constructor in:\n{glsl}"
+
+def test_struct_member_access():
+    """Test accessing struct members."""
+    
+    def shader():
+        p = Point(x=float(1.0), y=float(2.0))
+        distance = float(0.0)
+        distance = p.x + p.y
+    
+    glsl = compile_function(shader)
+    assert "distance = (p.x + p.y);" in glsl, f"Expected member access in:\n{glsl}"
+
+def test_nested_structs():
+    """Test that multiple structs can be used in same shader."""
+    
+    def shader():
+        mat = Material(
+            ambient=vec3(0.5),
+            diffuse=vec3(0.8),
+            specular=vec3(1.0),
+            shininess=float(32.0)
+        )
+        pt = Point(x=float(1.0), y=float(2.0))
+        result = vec4(mat.diffuse, pt.x)
+    
+    glsl = compile_function(shader)
+    # Both struct declarations should be present
+    assert "struct Material {" in glsl, f"Expected Material struct in:\n{glsl}"
+    assert "struct Point {" in glsl, f"Expected Point struct in:\n{glsl}"

@@ -266,3 +266,16 @@ class GlGsIn(ShaderInterface):
     # The actual GLSL declaration is handled automatically
     # We just need this class for type hints
     pass
+
+
+class GlTessIn(ShaderInterface):
+    """Built-in tessellation shader input interface.
+    
+    Represents the gl_in[] built-in array in tessellation shaders, providing
+    access to per-vertex data from the previous shader stage.
+    
+    This class defines the built-in members available in gl_in, primarily
+    gl_Position. Users will typically use this with Sequence[GlTessIn] as a
+    parameter type in tessellation shaders.
+    """
+    pass

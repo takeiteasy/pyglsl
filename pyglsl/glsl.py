@@ -17,14 +17,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .interface import ShaderInterface, UniformBlock, AttributeBlock, FragmentShaderOutputBlock
-from .types import GlslType, GlslArray
+from .types import GlslType, GlslArray, GlslStruct
 
 # Explicit export list to control namespace pollution when using 'from pyglsl.glsl import *'
 __all__ = [
     # Interface classes
     'ShaderInterface', 'UniformBlock', 'AttributeBlock', 'FragmentShaderOutputBlock',
     # Type classes  
-    'GlslType', 'GlslArray',
+    'GlslType', 'GlslArray', 'GlslStruct',
     # Scalar types
     'bool', 'int', 'uint', 'float', 'double',
     # Vector types
@@ -100,6 +100,20 @@ __all__ = [
     'GlGsIn',
     # Interpolation qualifiers
     'noperspective', 'flat', 'smooth',
+    # Tessellation primitives/spacings/orders
+    'quads', 'isolines', 'equal_spacing', 'fractional_even_spacing', 'fractional_odd_spacing', 'cw', 'ccw',
+    # Tessellation decorators
+    'tessellation_control_layout', 'tessellation_evaluation_layout',
+    # Tessellation built-in interface
+    'GlTessIn',
+    # Compute shader decorator
+    'compute_shader_layout',
+    # Compute shader qualifiers
+    'shared',
+    # Compute shader built-ins
+    'barrier', 'memoryBarrier', 'memoryBarrierAtomicCounter', 'memoryBarrierBuffer', 'memoryBarrierImage', 'memoryBarrierShared', 'groupMemoryBarrier',
+    'atomicAdd', 'atomicMin', 'atomicMax', 'atomicAnd', 'atomicOr', 'atomicXor', 'atomicExchange', 'atomicCompSwap',
+    'imageLoad', 'imageStore', 'imageAtomicAdd', 'imageAtomicMin', 'imageAtomicMax', 'imageAtomicAnd', 'imageAtomicOr', 'imageAtomicXor', 'imageAtomicExchange', 'imageAtomicCompSwap',
 ]
 
 bool = GlslType
@@ -435,6 +449,27 @@ class line_strip(object):
 class triangle_strip(object):
     pass
 
+class quads(object):
+    pass
+
+class isolines(object):
+    pass
+
+class equal_spacing(object):
+    pass
+
+class fractional_even_spacing(object):
+    pass
+
+class fractional_odd_spacing(object):
+    pass
+
+class cw(object):
+    pass
+
+class ccw(object):
+    pass
+
 def EmitVertex():
     pass
 
@@ -464,6 +499,71 @@ def geometry_shader_layout(input_primitive, output_primitive, max_vertices):
             'max_vertices': max_vertices
         }
         return func
+        return func
+    return decorator
+
+def tessellation_control_layout(vertices):
+    """Decorator to specify tessellation control shader layout qualifiers.
+    
+    Args:
+        vertices: Number of vertices in the output patch
+    
+    Example:
+        >>> @tessellation_control_layout(vertices=3)
+        ... def tcs_shader(...) -> None:
+        ...     pass
+    """
+    def decorator(func):
+        func._tess_control_layout = {
+            'vertices': vertices
+        }
+        return func
+    return decorator
+
+def tessellation_evaluation_layout(primitive_mode, spacing=None, vertex_order=None):
+    """Decorator to specify tessellation evaluation shader layout qualifiers.
+    
+    Args:
+        primitive_mode: Input primitive type (triangles, quads, isolines)
+        spacing: Vertex spacing (equal_spacing, fractional_even_spacing, fractional_odd_spacing)
+        vertex_order: Vertex winding order (cw, ccw)
+    
+    Example:
+        >>> @tessellation_evaluation_layout(primitive_mode=triangles,
+        ...                                 spacing=equal_spacing,
+        ...                                 vertex_order=ccw)
+        ... def tes_shader(...) -> None:
+        ...     pass
+    """
+    def decorator(func):
+        func._tess_eval_layout = {
+            'primitive_mode': primitive_mode,
+            'spacing': spacing,
+            'vertex_order': vertex_order
+        }
+        return func
+    return decorator
+
+def compute_shader_layout(local_size_x=1, local_size_y=1, local_size_z=1):
+    """Decorator to specify compute shader layout qualifiers.
+    
+    Args:
+        local_size_x: Local workgroup size in X dimension (default 1)
+        local_size_y: Local workgroup size in Y dimension (default 1)
+        local_size_z: Local workgroup size in Z dimension (default 1)
+    
+    Example:
+        >>> @compute_shader_layout(local_size_x=16, local_size_y=16)
+        ... def compute_shader():
+        ...     pass
+    """
+    def decorator(func):
+        func._compute_layout = {
+            'local_size_x': local_size_x,
+            'local_size_y': local_size_y,
+            'local_size_z': local_size_z
+        }
+        return func
     return decorator
 
 # Interpolation qualifiers for interface block members
@@ -491,6 +591,44 @@ class smooth(object):
     """
     pass
 
+class shared(object):
+    """Shared memory storage qualifier for compute shaders.
+    
+    Use in function body: data = shared(float[256])
+    Generates: shared float data[256];
+    """
+    def __init__(self, type_):
+        pass
+
+# Compute shader built-in functions
+def barrier(): pass
+def memoryBarrier(): pass
+def memoryBarrierAtomicCounter(): pass
+def memoryBarrierBuffer(): pass
+def memoryBarrierImage(): pass
+def memoryBarrierShared(): pass
+def groupMemoryBarrier(): pass
+
+def atomicAdd(*args, **kwargs): pass
+def atomicMin(*args, **kwargs): pass
+def atomicMax(*args, **kwargs): pass
+def atomicAnd(*args, **kwargs): pass
+def atomicOr(*args, **kwargs): pass
+def atomicXor(*args, **kwargs): pass
+def atomicExchange(*args, **kwargs): pass
+def atomicCompSwap(*args, **kwargs): pass
+
+def imageLoad(*args, **kwargs): pass
+def imageStore(*args, **kwargs): pass
+def imageAtomicAdd(*args, **kwargs): pass
+def imageAtomicMin(*args, **kwargs): pass
+def imageAtomicMax(*args, **kwargs): pass
+def imageAtomicAnd(*args, **kwargs): pass
+def imageAtomicOr(*args, **kwargs): pass
+def imageAtomicXor(*args, **kwargs): pass
+def imageAtomicExchange(*args, **kwargs): pass
+def imageAtomicCompSwap(*args, **kwargs): pass
+
 # Import GlGsIn from interface module (will be defined there)
 # We import it here for convenience so users can do: from pyglsl.glsl import GlGsIn
 # The actual definition is in interface.py to avoid circular imports
@@ -499,4 +637,7 @@ def __getattr__(name):
     if name == 'GlGsIn':
         from .interface import GlGsIn
         return GlGsIn
+    if name == 'GlTessIn':
+        from .interface import GlTessIn
+        return GlTessIn
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

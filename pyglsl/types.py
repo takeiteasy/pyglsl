@@ -99,3 +99,110 @@ class ArraySpec(object):
             return None
         gtype = node.slice.id
         return cls(gtype, num)
+
+@attr.s
+class StructMember:
+    """Represents a member field in a GLSL struct.
+    
+    This type is used internally to track struct member names and types
+    when generating GLSL struct declarations.
+    """
+    name = attr.ib()
+    gtype = attr.ib()
+
+class GlslStruct:
+    """Base class for GLSL struct definitions.
+    
+    Subclass this to define custom GLSL struct types. Members are defined
+    as class variables with GLSL type constructors.
+    
+    Example:
+        >>> from pyglsl.glsl import GlslStruct, vec3, float
+        >>> class Material(GlslStruct):
+        ...     ambient = vec3()
+        ...     diffuse = vec3()
+        ...     specular = vec3()
+        ...     shininess = float()
+        >>> 
+        >>> # Use in shader:
+        >>> def shader():
+        ...     mat = Material(
+        ...         ambient=vec3(0.2),
+        ...         diffuse=vec3(0.8),
+        ...         specular=vec3(1.0),
+        ...         shininess=float(32.0)
+        ...     )
+    
+    The struct definition will be transpiled to GLSL as:
+        struct Material {
+            vec3 ambient;
+            vec3 diffuse;
+            vec3 specular;
+            float shininess;
+        };
+    """
+    
+    def __init__(self, **kwargs):
+        """Initialize struct instance with keyword arguments."""
+        pass
+    
+    @classmethod
+    def get_members(cls):
+        """Extract struct member definitions from class variables.
+        
+        Returns:
+            List of StructMember objects representing the struct fields.
+        """
+        from inspect import getsource
+        
+        # Parse the class definition to extract members
+        # This uses the same approach as ShaderInterface.get_vars()
+        src_code = getsource(cls)
+        try:
+            src = ast.parse(src_code)
+        except SyntaxError:
+            # Fallback for built-in or dynamically created classes
+            return []
+        
+        cls_node = src.body[0]
+        if not isinstance(cls_node, ast.ClassDef):
+            return []
+        
+        members = []
+        for item in cls_node.body:
+            if isinstance(item, ast.Assign):
+                name = item.targets[0].id
+                if name.startswith('_'):
+                    continue
+                if not isinstance(item.value, ast.Call):
+                    continue
+                # Extract type name from the constructor call
+                if isinstance(item.value.func, ast.Name):
+                    gtype = item.value.func.id
+                    members.append(StructMember(name, gtype))
+        
+        return members
+    
+    @classmethod
+    def struct_name(cls):
+        """Get the GLSL struct type name.
+        
+        Returns:
+            The class name to use as the struct name in GLSL.
+        """
+        return cls.__name__
+    
+    @classmethod
+    def declare_struct(cls):
+        """Generate GLSL struct declaration.
+        
+        Returns:
+            List of strings containing the GLSL struct declaration lines.
+        """
+        lines = [f'struct {cls.struct_name()} {{']
+        members = cls.get_members()
+        for member in members:
+            lines.append(f'    {member.gtype} {member.name};')
+        lines.append('};')
+        return lines
+

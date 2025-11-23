@@ -63,6 +63,92 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 - Swizzling: `vec.xyz`, `vec.xxyy`
 - Subscripting: `arr[i]`, `mat[row][col]`
 
+### Geometry Shaders
+- **Layout Qualifiers**: `@geometry_shader_layout` decorator for primitive configuration
+- **Input Primitives**: `points`, `lines`, `triangles`, `lines_adjacency`, `triangles_adjacency`
+- **Output Primitives**: `points`, `line_strip`, `triangle_strip`
+- **Vertex Emission**: `yield` statements automatically convert to `EmitVertex()`
+- **Primitive Completion**: `EndPrimitive()` function
+- **Built-in Access**: `gl_in` array for vertex shader outputs (type: `GlGsIn`)
+- **Array Inputs**: Use `Sequence[InterfaceType]` for geometry shader inputs
+- **Generator Output**: Use `Iterator[InterfaceType]` as return type
+
+Example:
+```python
+@geometry_shader_layout(input_primitive=triangles,
+                        output_primitive=triangle_strip,
+                        max_vertices=3)
+def geom_shader(gl_in: Sequence[GlGsIn], vs_out: Sequence[VsOut]) -> Iterator[GsOut]:
+    for i in range(3):
+        yield GsOut(gl_Position=gl_in[i].gl_Position, color=vs_out[i].color)
+    EndPrimitive()
+    EndPrimitive()
+```
+
+### Tessellation Shaders
+- **Control Stage**: `TessControlStage` with `@tessellation_control_layout`
+- **Evaluation Stage**: `TessEvalStage` with `@tessellation_evaluation_layout`
+- **Patch Output**: `layout(vertices = N) out`
+- **Primitive Modes**: `quads`, `isolines`, `triangles`
+- **Spacing**: `equal_spacing`, `fractional_even_spacing`, `fractional_odd_spacing`
+- **Ordering**: `cw`, `ccw`
+- **Built-ins**: `gl_TessLevelInner`, `gl_TessLevelOuter`, `gl_TessCoord`
+
+Example:
+```python
+@tessellation_control_layout(vertices=3)
+def tcs_shader(gl_in: Sequence[GlTessIn]) -> TcsOut:
+    gl_TessLevelInner[0] = 3.0
+    gl_TessLevelOuter[0] = 2.0
+    return TcsOut(pos=gl_in[gl_InvocationID].gl_Position)
+
+@tessellation_evaluation_layout(primitive_mode=triangles,
+                                spacing=equal_spacing,
+                                vertex_order=ccw)
+def tes_shader(gl_in: Sequence[GlTessIn]) -> TesOut:
+    # Interpolate position using gl_TessCoord
+    p0 = vec4(gl_in[0].gl_Position)
+    p1 = vec4(gl_in[1].gl_Position)
+    p2 = vec4(gl_in[2].gl_Position)
+    pos = p0 * gl_TessCoord.x + p1 * gl_TessCoord.y + p2 * gl_TessCoord.z
+    return TesOut(gl_Position=pos)
+```
+
+### Compute Shaders
+- **Stage**: `ComputeStage` with `@compute_shader_layout`
+- **Workgroup Size**: `local_size_x`, `local_size_y`, `local_size_z`
+- **Shared Memory**: `shared(type)` for `shared` storage qualifier
+- **Synchronization**: `barrier()`, `memoryBarrier()`, etc.
+- **Atomics**: `atomicAdd`, `atomicMin`, `atomicMax`, etc.
+- **Image Load/Store**: `imageLoad`, `imageStore`, `imageAtomic*`
+
+Example:
+```python
+@compute_shader_layout(local_size_x=16, local_size_y=16)
+def compute_shader(img_in: Uniform[image2D], img_out: Uniform[image2D]):
+    pos = ivec2(gl_GlobalInvocationID.xy)
+    # Shared memory example
+    local_data = shared(float[256])
+    
+    # Image processing
+    color = vec4(imageLoad(img_in, pos))
+    imageStore(img_out, pos, color)
+```
+
+### Interpolation Qualifiers
+- **`noperspective`**: Disable perspective-correct interpolation
+- **`flat`**: No interpolation (use value from provoking vertex)
+- **`smooth`**: Perspective-correct interpolation (default, can be explicit)
+
+Used in interface blocks:
+```python
+class VsOut(ShaderInterface):
+    screenSpaceColor = vec3(noperspective)  # No perspective correction
+    vertexID = int(flat)                     # No interpolation
+    normal = vec3(smooth)                    # Explicit smooth (default)
+    position = vec4()                        # Default (smooth)
+```
+
 ## Known Limitations
 
 ### List Comprehensions
@@ -76,9 +162,15 @@ Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](ht
 ### Recursion
 - GLSL does not support recursion. Recursive function calls will cause a GLSL compilation error (though pyglsl will transpile them).
 
-## Full Example
+### Geometry Shaders
+- GLSL geometry shaders require version 1.50+ (OpenGL 3.2+). The default version "330 core" supports them.
+- Geometry shaders must specify layout qualifiers via the `@geometry_shader_layout` decorator.
 
-### Python input
+## Examples
+
+### Basic Vertex + Fragment Shader
+
+Python input:
 
 ```python
 # shader.py
