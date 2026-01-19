@@ -1,8 +1,5 @@
 # pyglsl
 
-> **CAUTION**
-> Work in progress, see [TODO](#todo) section.
-
 Transform Python to GLSL. Fork from long abandoned [nicholasbishop/shaderdef](https://github.com/nicholasbishop/shaderdef). Most of the work was done by the original author, I've just fixed and updated some stuff.
 
 > `pip install pyglsl==0.1.0`
